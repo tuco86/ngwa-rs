@@ -1,0 +1,15 @@
+[package]
+name = "ngwa-nodes"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ngwa-core = { workspace = true }
+ngwa-executor = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

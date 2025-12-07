@@ -1,0 +1,22 @@
+[package]
+name = "ngwa-app"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "ngwa"
+path = "src/main.rs"
+
+[dependencies]
+ngwa-core = { workspace = true }
+ngwa-executor = { workspace = true }
+ngwa-scheduler = { workspace = true }
+ngwa-nodes = { workspace = true }
+iced = { workspace = true }
+iced_nodegraph = { workspace = true }
+spacetimedb-sdk = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }

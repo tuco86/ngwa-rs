@@ -1,0 +1,11 @@
+[package]
+name = "ngwa-spacetime"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+spacetimedb = { workspace = true }
+log = { workspace = true }

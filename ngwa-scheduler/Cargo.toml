@@ -1,0 +1,15 @@
+[package]
+name = "ngwa-scheduler"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ngwa-core = { workspace = true }
+ngwa-executor = { workspace = true }
+tokio = { workspace = true }
+cron = { workspace = true }
+axum = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+serde_json = { workspace = true }
