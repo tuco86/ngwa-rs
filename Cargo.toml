@@ -25,6 +25,7 @@ ngwa-nodes = { path = "ngwa-nodes" }
 # UI
 iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features = ["advanced", "wgpu", "tokio"] }
 iced_nodegraph = { path = "../iced_nodegraph/iced_nodegraph" }
+iced_palette = { path = "../iced_palette" }
 
 # Async
 tokio = { version = "1", features = ["full"] }
@@ -40,7 +41,7 @@ axum = "0.7"
 
 # SpacetimeDB
 spacetimedb = "1.7"
-spacetimedb-sdk = "1.0"
+spacetimedb-sdk = "1.10"  # Client SDK - must match server version for generated bindings
 
 # Scheduling
 cron = "0.12"

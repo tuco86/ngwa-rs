@@ -1,0 +1,13 @@
+services:
+  spacetimedb:
+    image: clockworklabs/spacetime:latest
+    container_name: ngwa-spacetimedb
+    command: start --listen-addr 0.0.0.0:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - spacetimedb-data:/home/spacetime/.spacetime
+    restart: unless-stopped
+
+volumes:
+  spacetimedb-data:

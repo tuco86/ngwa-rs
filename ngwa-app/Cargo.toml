@@ -14,9 +14,11 @@ ngwa-scheduler = { workspace = true }
 ngwa-nodes = { workspace = true }
 iced = { workspace = true }
 iced_nodegraph = { workspace = true }
+iced_palette = { workspace = true }
 spacetimedb-sdk = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
 tracing = { workspace = true }
+once_cell = "1.19"
