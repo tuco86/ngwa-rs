@@ -1330,12 +1330,11 @@ impl NgwaApp {
             }
 
             Message::DragStarted(drag_info) => {
-                // Send drag start to SpacetimeDB
+                // Send drag start to SpacetimeDB for collaboration
                 if let Some(workflow_id) = &self.current_workflow_id {
                     if let Some(conn) = get_connection() {
                         let (drag_type, node_uuids, from_pin, x, y) = match &drag_info {
                             DragInfo::Node { node_id } => {
-                                // Get node UUID from workflow
                                 let uuid = self.current_workflow.as_ref()
                                     .and_then(|w| w.nodes.get(*node_id))
                                     .map(|n| n.id.to_string())
@@ -1343,7 +1342,6 @@ impl NgwaApp {
                                 ("node", format!("[\"{}\"]", uuid), String::new(), 0.0, 0.0)
                             }
                             DragInfo::Group { node_ids } => {
-                                // Get node UUIDs from workflow
                                 let uuids: Vec<String> = node_ids.iter()
                                     .filter_map(|id| self.current_workflow.as_ref()
                                         .and_then(|w| w.nodes.get(*id))
