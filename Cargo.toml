@@ -11,7 +11,7 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Hannes"]
 license = "MIT"
 
@@ -23,9 +23,9 @@ ngwa-scheduler = { path = "ngwa-scheduler" }
 ngwa-nodes = { path = "ngwa-nodes" }
 
 # UI
-iced = { git = "https://github.com/iced-rs/iced.git", branch = "master", features = ["advanced", "wgpu", "tokio"] }
-iced_nodegraph = { path = "../iced_nodegraph/iced_nodegraph" }
-iced_palette = { path = "../iced_palette" }
+iced = { version = "0.14", features = ["advanced", "wgpu", "tokio"] }
+iced_nodegraph = { git = "https://github.com/tuco86/iced_nodegraph.git", branch = "main" }
+iced_palette = { git = "https://github.com/tuco86/iced_palette.git", branch = "main" }
 
 # Async
 tokio = { version = "1", features = ["full"] }

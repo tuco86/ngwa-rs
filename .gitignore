@@ -16,4 +16,4 @@ Cargo.lock
 # Spacetime ignore
 /.spacetime
 /.claude/settings.local.json
-    
+/.cargo/config.toml 
