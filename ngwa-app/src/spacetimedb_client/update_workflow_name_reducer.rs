@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<UpdateWorkflowNameArgs> for super::Reducer {
         Self::UpdateWorkflowName {
             workflow_id: args.workflow_id,
             name: args.name,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for UpdateWorkflowNameArgs {
@@ -42,9 +36,7 @@ pub trait update_workflow_name {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_workflow_name`] callbacks.
-    fn update_workflow_name(&self, workflow_id: String,
-name: String,
-) -> __sdk::Result<()>;
+    fn update_workflow_name(&self, workflow_id: String, name: String) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_workflow_name`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,40 +44,47 @@ name: String,
     ///
     /// The returned [`UpdateWorkflowNameCallbackId`] can be passed to [`Self::remove_on_update_workflow_name`]
     /// to cancel the callback.
-    fn on_update_workflow_name(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static) -> UpdateWorkflowNameCallbackId;
+    fn on_update_workflow_name(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
+    ) -> UpdateWorkflowNameCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_workflow_name`],
     /// causing it not to run in the future.
     fn remove_on_update_workflow_name(&self, callback: UpdateWorkflowNameCallbackId);
 }
 
 impl update_workflow_name for super::RemoteReducers {
-    fn update_workflow_name(&self, workflow_id: String,
-name: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("update_workflow_name", UpdateWorkflowNameArgs { workflow_id, name,  })
+    fn update_workflow_name(&self, workflow_id: String, name: String) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "update_workflow_name",
+            UpdateWorkflowNameArgs { workflow_id, name },
+        )
     }
     fn on_update_workflow_name(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
     ) -> UpdateWorkflowNameCallbackId {
         UpdateWorkflowNameCallbackId(self.imp.on_reducer(
             "update_workflow_name",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::UpdateWorkflowName {
-                            workflow_id, name, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer: super::Reducer::UpdateWorkflowName { workflow_id, name },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, name, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, name)
             }),
         ))
     }
     fn remove_on_update_workflow_name(&self, callback: UpdateWorkflowNameCallbackId) {
-        self.imp.remove_on_reducer("update_workflow_name", callback.0)
+        self.imp
+            .remove_on_reducer("update_workflow_name", callback.0)
     }
 }
 
@@ -105,7 +104,7 @@ pub trait set_flags_for_update_workflow_name {
 
 impl set_flags_for_update_workflow_name for super::SetReducerFlags {
     fn update_workflow_name(&self, flags: __ws::CallReducerFlags) {
-        self.imp.set_call_reducer_flags("update_workflow_name", flags);
+        self.imp
+            .set_call_reducer_flags("update_workflow_name", flags);
     }
 }
-

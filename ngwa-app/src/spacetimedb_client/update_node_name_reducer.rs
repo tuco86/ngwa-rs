@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -24,8 +18,8 @@ impl From<UpdateNodeNameArgs> for super::Reducer {
             workflow_id: args.workflow_id,
             node_uuid: args.node_uuid,
             name: args.name,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for UpdateNodeNameArgs {
@@ -44,10 +38,12 @@ pub trait update_node_name {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_node_name`] callbacks.
-    fn update_node_name(&self, workflow_id: String,
-node_uuid: String,
-name: String,
-) -> __sdk::Result<()>;
+    fn update_node_name(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        name: String,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_node_name`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -55,36 +51,57 @@ name: String,
     ///
     /// The returned [`UpdateNodeNameCallbackId`] can be passed to [`Self::remove_on_update_node_name`]
     /// to cancel the callback.
-    fn on_update_node_name(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, ) + Send + 'static) -> UpdateNodeNameCallbackId;
+    fn on_update_node_name(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String) + Send + 'static,
+    ) -> UpdateNodeNameCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_node_name`],
     /// causing it not to run in the future.
     fn remove_on_update_node_name(&self, callback: UpdateNodeNameCallbackId);
 }
 
 impl update_node_name for super::RemoteReducers {
-    fn update_node_name(&self, workflow_id: String,
-node_uuid: String,
-name: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("update_node_name", UpdateNodeNameArgs { workflow_id, node_uuid, name,  })
+    fn update_node_name(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        name: String,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "update_node_name",
+            UpdateNodeNameArgs {
+                workflow_id,
+                node_uuid,
+                name,
+            },
+        )
     }
     fn on_update_node_name(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String)
+            + Send
+            + 'static,
     ) -> UpdateNodeNameCallbackId {
         UpdateNodeNameCallbackId(self.imp.on_reducer(
             "update_node_name",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::UpdateNodeName {
-                            workflow_id, node_uuid, name, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::UpdateNodeName {
+                                    workflow_id,
+                                    node_uuid,
+                                    name,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, node_uuid, name, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, node_uuid, name)
             }),
         ))
     }
@@ -112,4 +129,3 @@ impl set_flags_for_update_node_name for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("update_node_name", flags);
     }
 }
-

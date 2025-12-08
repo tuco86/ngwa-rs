@@ -4,25 +4,21 @@
 // This was generated using spacetimedb cli version 1.10.0 (commit 1d576dc75ca066879f6d9ee4d156c5bce940bd31).
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
-pub mod execution_log_type;
-pub mod user_presence_type;
-pub mod workflow_type;
-pub mod workflow_edge_type;
-pub mod workflow_node_type;
 pub mod add_edge_reducer;
 pub mod add_node_reducer;
+pub mod clear_selection_reducer;
 pub mod create_workflow_reducer;
-pub mod delete_edge_reducer;
 pub mod delete_edge_by_pins_reducer;
+pub mod delete_edge_reducer;
 pub mod delete_node_reducer;
 pub mod delete_workflow_reducer;
+pub mod drag_state_table;
+pub mod drag_state_type;
+pub mod end_drag_reducer;
+pub mod execution_log_table;
+pub mod execution_log_type;
 pub mod finish_execution_reducer;
 pub mod identity_connected_reducer;
 pub mod identity_disconnected_reducer;
@@ -30,50 +26,103 @@ pub mod join_workflow_reducer;
 pub mod leave_workflow_reducer;
 pub mod move_node_reducer;
 pub mod share_workflow_reducer;
+pub mod start_drag_reducer;
 pub mod start_execution_reducer;
 pub mod toggle_node_disabled_reducer;
 pub mod update_cursor_reducer;
+pub mod update_drag_reducer;
 pub mod update_nickname_reducer;
 pub mod update_node_config_reducer;
 pub mod update_node_name_reducer;
+pub mod update_selection_reducer;
 pub mod update_workflow_name_reducer;
-pub mod execution_log_table;
 pub mod user_presence_table;
-pub mod workflow_table;
+pub mod user_presence_type;
+pub mod user_selection_table;
+pub mod user_selection_type;
 pub mod workflow_edge_table;
+pub mod workflow_edge_type;
 pub mod workflow_node_table;
+pub mod workflow_node_type;
+pub mod workflow_table;
+pub mod workflow_type;
 
-pub use execution_log_type::ExecutionLog;
-pub use user_presence_type::UserPresence;
-pub use workflow_type::Workflow;
-pub use workflow_edge_type::WorkflowEdge;
-pub use workflow_node_type::WorkflowNode;
-pub use execution_log_table::*;
-pub use user_presence_table::*;
-pub use workflow_table::*;
-pub use workflow_edge_table::*;
-pub use workflow_node_table::*;
 pub use add_edge_reducer::{add_edge, set_flags_for_add_edge, AddEdgeCallbackId};
 pub use add_node_reducer::{add_node, set_flags_for_add_node, AddNodeCallbackId};
-pub use create_workflow_reducer::{create_workflow, set_flags_for_create_workflow, CreateWorkflowCallbackId};
+pub use clear_selection_reducer::{
+    clear_selection, set_flags_for_clear_selection, ClearSelectionCallbackId,
+};
+pub use create_workflow_reducer::{
+    create_workflow, set_flags_for_create_workflow, CreateWorkflowCallbackId,
+};
+pub use delete_edge_by_pins_reducer::{
+    delete_edge_by_pins, set_flags_for_delete_edge_by_pins, DeleteEdgeByPinsCallbackId,
+};
 pub use delete_edge_reducer::{delete_edge, set_flags_for_delete_edge, DeleteEdgeCallbackId};
-pub use delete_edge_by_pins_reducer::{delete_edge_by_pins, set_flags_for_delete_edge_by_pins, DeleteEdgeByPinsCallbackId};
 pub use delete_node_reducer::{delete_node, set_flags_for_delete_node, DeleteNodeCallbackId};
-pub use delete_workflow_reducer::{delete_workflow, set_flags_for_delete_workflow, DeleteWorkflowCallbackId};
-pub use finish_execution_reducer::{finish_execution, set_flags_for_finish_execution, FinishExecutionCallbackId};
-pub use identity_connected_reducer::{identity_connected, set_flags_for_identity_connected, IdentityConnectedCallbackId};
-pub use identity_disconnected_reducer::{identity_disconnected, set_flags_for_identity_disconnected, IdentityDisconnectedCallbackId};
-pub use join_workflow_reducer::{join_workflow, set_flags_for_join_workflow, JoinWorkflowCallbackId};
-pub use leave_workflow_reducer::{leave_workflow, set_flags_for_leave_workflow, LeaveWorkflowCallbackId};
+pub use delete_workflow_reducer::{
+    delete_workflow, set_flags_for_delete_workflow, DeleteWorkflowCallbackId,
+};
+pub use drag_state_table::*;
+pub use drag_state_type::DragState;
+pub use end_drag_reducer::{end_drag, set_flags_for_end_drag, EndDragCallbackId};
+pub use execution_log_table::*;
+pub use execution_log_type::ExecutionLog;
+pub use finish_execution_reducer::{
+    finish_execution, set_flags_for_finish_execution, FinishExecutionCallbackId,
+};
+pub use identity_connected_reducer::{
+    identity_connected, set_flags_for_identity_connected, IdentityConnectedCallbackId,
+};
+pub use identity_disconnected_reducer::{
+    identity_disconnected, set_flags_for_identity_disconnected, IdentityDisconnectedCallbackId,
+};
+pub use join_workflow_reducer::{
+    join_workflow, set_flags_for_join_workflow, JoinWorkflowCallbackId,
+};
+pub use leave_workflow_reducer::{
+    leave_workflow, set_flags_for_leave_workflow, LeaveWorkflowCallbackId,
+};
 pub use move_node_reducer::{move_node, set_flags_for_move_node, MoveNodeCallbackId};
-pub use share_workflow_reducer::{share_workflow, set_flags_for_share_workflow, ShareWorkflowCallbackId};
-pub use start_execution_reducer::{start_execution, set_flags_for_start_execution, StartExecutionCallbackId};
-pub use toggle_node_disabled_reducer::{toggle_node_disabled, set_flags_for_toggle_node_disabled, ToggleNodeDisabledCallbackId};
-pub use update_cursor_reducer::{update_cursor, set_flags_for_update_cursor, UpdateCursorCallbackId};
-pub use update_nickname_reducer::{update_nickname, set_flags_for_update_nickname, UpdateNicknameCallbackId};
-pub use update_node_config_reducer::{update_node_config, set_flags_for_update_node_config, UpdateNodeConfigCallbackId};
-pub use update_node_name_reducer::{update_node_name, set_flags_for_update_node_name, UpdateNodeNameCallbackId};
-pub use update_workflow_name_reducer::{update_workflow_name, set_flags_for_update_workflow_name, UpdateWorkflowNameCallbackId};
+pub use share_workflow_reducer::{
+    set_flags_for_share_workflow, share_workflow, ShareWorkflowCallbackId,
+};
+pub use start_drag_reducer::{set_flags_for_start_drag, start_drag, StartDragCallbackId};
+pub use start_execution_reducer::{
+    set_flags_for_start_execution, start_execution, StartExecutionCallbackId,
+};
+pub use toggle_node_disabled_reducer::{
+    set_flags_for_toggle_node_disabled, toggle_node_disabled, ToggleNodeDisabledCallbackId,
+};
+pub use update_cursor_reducer::{
+    set_flags_for_update_cursor, update_cursor, UpdateCursorCallbackId,
+};
+pub use update_drag_reducer::{set_flags_for_update_drag, update_drag, UpdateDragCallbackId};
+pub use update_nickname_reducer::{
+    set_flags_for_update_nickname, update_nickname, UpdateNicknameCallbackId,
+};
+pub use update_node_config_reducer::{
+    set_flags_for_update_node_config, update_node_config, UpdateNodeConfigCallbackId,
+};
+pub use update_node_name_reducer::{
+    set_flags_for_update_node_name, update_node_name, UpdateNodeNameCallbackId,
+};
+pub use update_selection_reducer::{
+    set_flags_for_update_selection, update_selection, UpdateSelectionCallbackId,
+};
+pub use update_workflow_name_reducer::{
+    set_flags_for_update_workflow_name, update_workflow_name, UpdateWorkflowNameCallbackId,
+};
+pub use user_presence_table::*;
+pub use user_presence_type::UserPresence;
+pub use user_selection_table::*;
+pub use user_selection_type::UserSelection;
+pub use workflow_edge_table::*;
+pub use workflow_edge_type::WorkflowEdge;
+pub use workflow_node_table::*;
+pub use workflow_node_type::WorkflowNode;
+pub use workflow_table::*;
+pub use workflow_type::Workflow;
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -83,13 +132,13 @@ pub use update_workflow_name_reducer::{update_workflow_name, set_flags_for_updat
 /// to indicate which reducer caused the event.
 
 pub enum Reducer {
-        AddEdge {
+    AddEdge {
         workflow_id: String,
         from_node_uuid: String,
         from_output: String,
         to_node_uuid: String,
         to_input: String,
-}    ,
+    },
     AddNode {
         workflow_id: String,
         node_uuid: String,
@@ -98,82 +147,99 @@ pub enum Reducer {
         position_x: f32,
         position_y: f32,
         config_json: String,
-}    ,
+    },
+    ClearSelection,
     CreateWorkflow {
         id: String,
         name: String,
-}    ,
+    },
     DeleteEdge {
         edge_id: u64,
-}    ,
+    },
     DeleteEdgeByPins {
         workflow_id: String,
         from_node_uuid: String,
         from_output: String,
         to_node_uuid: String,
         to_input: String,
-}    ,
+    },
     DeleteNode {
         workflow_id: String,
         node_uuid: String,
-}    ,
+    },
     DeleteWorkflow {
         workflow_id: String,
-}    ,
+    },
+    EndDrag,
     FinishExecution {
         execution_id: u64,
         success: bool,
-        error_message: Option::<String>,
-}    ,
-    IdentityConnected ,
-    IdentityDisconnected ,
+        error_message: Option<String>,
+    },
+    IdentityConnected,
+    IdentityDisconnected,
     JoinWorkflow {
         workflow_id: String,
         nickname: String,
         cursor_color: u32,
-}    ,
-    LeaveWorkflow ,
+    },
+    LeaveWorkflow,
     MoveNode {
         workflow_id: String,
         node_uuid: String,
         position_x: f32,
         position_y: f32,
-}    ,
+    },
     ShareWorkflow {
         workflow_id: String,
         is_shared: bool,
-}    ,
+    },
+    StartDrag {
+        workflow_id: String,
+        drag_type: String,
+        node_uuids: String,
+        from_pin: String,
+        x: f32,
+        y: f32,
+    },
     StartExecution {
         workflow_id: String,
         trigger_type: String,
-}    ,
+    },
     ToggleNodeDisabled {
         workflow_id: String,
         node_uuid: String,
-}    ,
+    },
     UpdateCursor {
         cursor_x: f32,
         cursor_y: f32,
-}    ,
+    },
+    UpdateDrag {
+        x: f32,
+        y: f32,
+    },
     UpdateNickname {
         nickname: String,
-}    ,
+    },
     UpdateNodeConfig {
         workflow_id: String,
         node_uuid: String,
         config_json: String,
-}    ,
+    },
     UpdateNodeName {
         workflow_id: String,
         node_uuid: String,
         name: String,
-}    ,
+    },
+    UpdateSelection {
+        workflow_id: String,
+        node_uuids: String,
+    },
     UpdateWorkflowName {
         workflow_id: String,
         name: String,
-}    ,
+    },
 }
-
 
 impl __sdk::InModule for Reducer {
     type Module = RemoteModule;
@@ -182,13 +248,15 @@ impl __sdk::InModule for Reducer {
 impl __sdk::Reducer for Reducer {
     fn reducer_name(&self) -> &'static str {
         match self {
-                        Reducer::AddEdge { .. } => "add_edge",
+            Reducer::AddEdge { .. } => "add_edge",
             Reducer::AddNode { .. } => "add_node",
+            Reducer::ClearSelection => "clear_selection",
             Reducer::CreateWorkflow { .. } => "create_workflow",
             Reducer::DeleteEdge { .. } => "delete_edge",
             Reducer::DeleteEdgeByPins { .. } => "delete_edge_by_pins",
             Reducer::DeleteNode { .. } => "delete_node",
             Reducer::DeleteWorkflow { .. } => "delete_workflow",
+            Reducer::EndDrag => "end_drag",
             Reducer::FinishExecution { .. } => "finish_execution",
             Reducer::IdentityConnected => "identity_connected",
             Reducer::IdentityDisconnected => "identity_disconnected",
@@ -196,58 +264,168 @@ impl __sdk::Reducer for Reducer {
             Reducer::LeaveWorkflow => "leave_workflow",
             Reducer::MoveNode { .. } => "move_node",
             Reducer::ShareWorkflow { .. } => "share_workflow",
+            Reducer::StartDrag { .. } => "start_drag",
             Reducer::StartExecution { .. } => "start_execution",
             Reducer::ToggleNodeDisabled { .. } => "toggle_node_disabled",
             Reducer::UpdateCursor { .. } => "update_cursor",
+            Reducer::UpdateDrag { .. } => "update_drag",
             Reducer::UpdateNickname { .. } => "update_nickname",
             Reducer::UpdateNodeConfig { .. } => "update_node_config",
             Reducer::UpdateNodeName { .. } => "update_node_name",
+            Reducer::UpdateSelection { .. } => "update_selection",
             Reducer::UpdateWorkflowName { .. } => "update_workflow_name",
             _ => unreachable!(),
-}
-}
+        }
+    }
 }
 impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
-        type Error = __sdk::Error;
-fn try_from(value: __ws::ReducerCallInfo<__ws::BsatnFormat>) -> __sdk::Result<Self> {
+    type Error = __sdk::Error;
+    fn try_from(value: __ws::ReducerCallInfo<__ws::BsatnFormat>) -> __sdk::Result<Self> {
         match &value.reducer_name[..] {
-                        "add_edge" => Ok(__sdk::parse_reducer_args::<add_edge_reducer::AddEdgeArgs>("add_edge", &value.args)?.into()),
-            "add_node" => Ok(__sdk::parse_reducer_args::<add_node_reducer::AddNodeArgs>("add_node", &value.args)?.into()),
-            "create_workflow" => Ok(__sdk::parse_reducer_args::<create_workflow_reducer::CreateWorkflowArgs>("create_workflow", &value.args)?.into()),
-            "delete_edge" => Ok(__sdk::parse_reducer_args::<delete_edge_reducer::DeleteEdgeArgs>("delete_edge", &value.args)?.into()),
-            "delete_edge_by_pins" => Ok(__sdk::parse_reducer_args::<delete_edge_by_pins_reducer::DeleteEdgeByPinsArgs>("delete_edge_by_pins", &value.args)?.into()),
-            "delete_node" => Ok(__sdk::parse_reducer_args::<delete_node_reducer::DeleteNodeArgs>("delete_node", &value.args)?.into()),
-            "delete_workflow" => Ok(__sdk::parse_reducer_args::<delete_workflow_reducer::DeleteWorkflowArgs>("delete_workflow", &value.args)?.into()),
-            "finish_execution" => Ok(__sdk::parse_reducer_args::<finish_execution_reducer::FinishExecutionArgs>("finish_execution", &value.args)?.into()),
-            "identity_connected" => Ok(__sdk::parse_reducer_args::<identity_connected_reducer::IdentityConnectedArgs>("identity_connected", &value.args)?.into()),
-            "identity_disconnected" => Ok(__sdk::parse_reducer_args::<identity_disconnected_reducer::IdentityDisconnectedArgs>("identity_disconnected", &value.args)?.into()),
-            "join_workflow" => Ok(__sdk::parse_reducer_args::<join_workflow_reducer::JoinWorkflowArgs>("join_workflow", &value.args)?.into()),
-            "leave_workflow" => Ok(__sdk::parse_reducer_args::<leave_workflow_reducer::LeaveWorkflowArgs>("leave_workflow", &value.args)?.into()),
-            "move_node" => Ok(__sdk::parse_reducer_args::<move_node_reducer::MoveNodeArgs>("move_node", &value.args)?.into()),
-            "share_workflow" => Ok(__sdk::parse_reducer_args::<share_workflow_reducer::ShareWorkflowArgs>("share_workflow", &value.args)?.into()),
-            "start_execution" => Ok(__sdk::parse_reducer_args::<start_execution_reducer::StartExecutionArgs>("start_execution", &value.args)?.into()),
-            "toggle_node_disabled" => Ok(__sdk::parse_reducer_args::<toggle_node_disabled_reducer::ToggleNodeDisabledArgs>("toggle_node_disabled", &value.args)?.into()),
-            "update_cursor" => Ok(__sdk::parse_reducer_args::<update_cursor_reducer::UpdateCursorArgs>("update_cursor", &value.args)?.into()),
-            "update_nickname" => Ok(__sdk::parse_reducer_args::<update_nickname_reducer::UpdateNicknameArgs>("update_nickname", &value.args)?.into()),
-            "update_node_config" => Ok(__sdk::parse_reducer_args::<update_node_config_reducer::UpdateNodeConfigArgs>("update_node_config", &value.args)?.into()),
-            "update_node_name" => Ok(__sdk::parse_reducer_args::<update_node_name_reducer::UpdateNodeNameArgs>("update_node_name", &value.args)?.into()),
-            "update_workflow_name" => Ok(__sdk::parse_reducer_args::<update_workflow_name_reducer::UpdateWorkflowNameArgs>("update_workflow_name", &value.args)?.into()),
-            unknown => Err(__sdk::InternalError::unknown_name("reducer", unknown, "ReducerCallInfo").into()),
-}
-}
+            "add_edge" => Ok(__sdk::parse_reducer_args::<add_edge_reducer::AddEdgeArgs>(
+                "add_edge",
+                &value.args,
+            )?
+            .into()),
+            "add_node" => Ok(__sdk::parse_reducer_args::<add_node_reducer::AddNodeArgs>(
+                "add_node",
+                &value.args,
+            )?
+            .into()),
+            "clear_selection" => Ok(__sdk::parse_reducer_args::<
+                clear_selection_reducer::ClearSelectionArgs,
+            >("clear_selection", &value.args)?
+            .into()),
+            "create_workflow" => Ok(__sdk::parse_reducer_args::<
+                create_workflow_reducer::CreateWorkflowArgs,
+            >("create_workflow", &value.args)?
+            .into()),
+            "delete_edge" => Ok(
+                __sdk::parse_reducer_args::<delete_edge_reducer::DeleteEdgeArgs>(
+                    "delete_edge",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "delete_edge_by_pins" => Ok(__sdk::parse_reducer_args::<
+                delete_edge_by_pins_reducer::DeleteEdgeByPinsArgs,
+            >("delete_edge_by_pins", &value.args)?
+            .into()),
+            "delete_node" => Ok(
+                __sdk::parse_reducer_args::<delete_node_reducer::DeleteNodeArgs>(
+                    "delete_node",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "delete_workflow" => Ok(__sdk::parse_reducer_args::<
+                delete_workflow_reducer::DeleteWorkflowArgs,
+            >("delete_workflow", &value.args)?
+            .into()),
+            "end_drag" => Ok(__sdk::parse_reducer_args::<end_drag_reducer::EndDragArgs>(
+                "end_drag",
+                &value.args,
+            )?
+            .into()),
+            "finish_execution" => Ok(__sdk::parse_reducer_args::<
+                finish_execution_reducer::FinishExecutionArgs,
+            >("finish_execution", &value.args)?
+            .into()),
+            "identity_connected" => Ok(__sdk::parse_reducer_args::<
+                identity_connected_reducer::IdentityConnectedArgs,
+            >("identity_connected", &value.args)?
+            .into()),
+            "identity_disconnected" => Ok(__sdk::parse_reducer_args::<
+                identity_disconnected_reducer::IdentityDisconnectedArgs,
+            >("identity_disconnected", &value.args)?
+            .into()),
+            "join_workflow" => Ok(__sdk::parse_reducer_args::<
+                join_workflow_reducer::JoinWorkflowArgs,
+            >("join_workflow", &value.args)?
+            .into()),
+            "leave_workflow" => Ok(__sdk::parse_reducer_args::<
+                leave_workflow_reducer::LeaveWorkflowArgs,
+            >("leave_workflow", &value.args)?
+            .into()),
+            "move_node" => Ok(
+                __sdk::parse_reducer_args::<move_node_reducer::MoveNodeArgs>(
+                    "move_node",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "share_workflow" => Ok(__sdk::parse_reducer_args::<
+                share_workflow_reducer::ShareWorkflowArgs,
+            >("share_workflow", &value.args)?
+            .into()),
+            "start_drag" => Ok(
+                __sdk::parse_reducer_args::<start_drag_reducer::StartDragArgs>(
+                    "start_drag",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "start_execution" => Ok(__sdk::parse_reducer_args::<
+                start_execution_reducer::StartExecutionArgs,
+            >("start_execution", &value.args)?
+            .into()),
+            "toggle_node_disabled" => Ok(__sdk::parse_reducer_args::<
+                toggle_node_disabled_reducer::ToggleNodeDisabledArgs,
+            >("toggle_node_disabled", &value.args)?
+            .into()),
+            "update_cursor" => Ok(__sdk::parse_reducer_args::<
+                update_cursor_reducer::UpdateCursorArgs,
+            >("update_cursor", &value.args)?
+            .into()),
+            "update_drag" => Ok(
+                __sdk::parse_reducer_args::<update_drag_reducer::UpdateDragArgs>(
+                    "update_drag",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "update_nickname" => Ok(__sdk::parse_reducer_args::<
+                update_nickname_reducer::UpdateNicknameArgs,
+            >("update_nickname", &value.args)?
+            .into()),
+            "update_node_config" => Ok(__sdk::parse_reducer_args::<
+                update_node_config_reducer::UpdateNodeConfigArgs,
+            >("update_node_config", &value.args)?
+            .into()),
+            "update_node_name" => Ok(__sdk::parse_reducer_args::<
+                update_node_name_reducer::UpdateNodeNameArgs,
+            >("update_node_name", &value.args)?
+            .into()),
+            "update_selection" => Ok(__sdk::parse_reducer_args::<
+                update_selection_reducer::UpdateSelectionArgs,
+            >("update_selection", &value.args)?
+            .into()),
+            "update_workflow_name" => Ok(__sdk::parse_reducer_args::<
+                update_workflow_name_reducer::UpdateWorkflowNameArgs,
+            >("update_workflow_name", &value.args)?
+            .into()),
+            unknown => {
+                Err(
+                    __sdk::InternalError::unknown_name("reducer", unknown, "ReducerCallInfo")
+                        .into(),
+                )
+            }
+        }
+    }
 }
 
 #[derive(Default)]
 #[allow(non_snake_case)]
 #[doc(hidden)]
 pub struct DbUpdate {
-        execution_log: __sdk::TableUpdate<ExecutionLog>,
+    drag_state: __sdk::TableUpdate<DragState>,
+    execution_log: __sdk::TableUpdate<ExecutionLog>,
     user_presence: __sdk::TableUpdate<UserPresence>,
+    user_selection: __sdk::TableUpdate<UserSelection>,
     workflow: __sdk::TableUpdate<Workflow>,
     workflow_edge: __sdk::TableUpdate<WorkflowEdge>,
     workflow_node: __sdk::TableUpdate<WorkflowNode>,
 }
-
 
 impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
     type Error = __sdk::Error;
@@ -255,19 +433,35 @@ impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
         let mut db_update = DbUpdate::default();
         for table_update in raw.tables {
             match &table_update.table_name[..] {
-
-        "execution_log" => db_update.execution_log.append(execution_log_table::parse_table_update(table_update)?),
-    "user_presence" => db_update.user_presence.append(user_presence_table::parse_table_update(table_update)?),
-    "workflow" => db_update.workflow.append(workflow_table::parse_table_update(table_update)?),
-    "workflow_edge" => db_update.workflow_edge.append(workflow_edge_table::parse_table_update(table_update)?),
-    "workflow_node" => db_update.workflow_node.append(workflow_node_table::parse_table_update(table_update)?),
+                "drag_state" => db_update
+                    .drag_state
+                    .append(drag_state_table::parse_table_update(table_update)?),
+                "execution_log" => db_update
+                    .execution_log
+                    .append(execution_log_table::parse_table_update(table_update)?),
+                "user_presence" => db_update
+                    .user_presence
+                    .append(user_presence_table::parse_table_update(table_update)?),
+                "user_selection" => db_update
+                    .user_selection
+                    .append(user_selection_table::parse_table_update(table_update)?),
+                "workflow" => db_update
+                    .workflow
+                    .append(workflow_table::parse_table_update(table_update)?),
+                "workflow_edge" => db_update
+                    .workflow_edge
+                    .append(workflow_edge_table::parse_table_update(table_update)?),
+                "workflow_node" => db_update
+                    .workflow_node
+                    .append(workflow_node_table::parse_table_update(table_update)?),
 
                 unknown => {
                     return Err(__sdk::InternalError::unknown_name(
                         "table",
                         unknown,
                         "DatabaseUpdate",
-                    ).into());
+                    )
+                    .into());
                 }
             }
         }
@@ -280,46 +474,91 @@ impl __sdk::InModule for DbUpdate {
 }
 
 impl __sdk::DbUpdate for DbUpdate {
-    fn apply_to_client_cache(&self, cache: &mut __sdk::ClientCache<RemoteModule>) -> AppliedDiff<'_> {
-                    let mut diff = AppliedDiff::default();
-                
-                diff.execution_log = cache.apply_diff_to_table::<ExecutionLog>("execution_log", &self.execution_log).with_updates_by_pk(|row| &row.id);
-        diff.user_presence = cache.apply_diff_to_table::<UserPresence>("user_presence", &self.user_presence).with_updates_by_pk(|row| &row.user_identity);
-        diff.workflow = cache.apply_diff_to_table::<Workflow>("workflow", &self.workflow).with_updates_by_pk(|row| &row.id);
-        diff.workflow_edge = cache.apply_diff_to_table::<WorkflowEdge>("workflow_edge", &self.workflow_edge).with_updates_by_pk(|row| &row.id);
-        diff.workflow_node = cache.apply_diff_to_table::<WorkflowNode>("workflow_node", &self.workflow_node).with_updates_by_pk(|row| &row.id);
+    fn apply_to_client_cache(
+        &self,
+        cache: &mut __sdk::ClientCache<RemoteModule>,
+    ) -> AppliedDiff<'_> {
+        let mut diff = AppliedDiff::default();
 
-                    diff
-                }
+        diff.drag_state = cache
+            .apply_diff_to_table::<DragState>("drag_state", &self.drag_state)
+            .with_updates_by_pk(|row| &row.user_identity);
+        diff.execution_log = cache
+            .apply_diff_to_table::<ExecutionLog>("execution_log", &self.execution_log)
+            .with_updates_by_pk(|row| &row.id);
+        diff.user_presence = cache
+            .apply_diff_to_table::<UserPresence>("user_presence", &self.user_presence)
+            .with_updates_by_pk(|row| &row.user_identity);
+        diff.user_selection = cache
+            .apply_diff_to_table::<UserSelection>("user_selection", &self.user_selection)
+            .with_updates_by_pk(|row| &row.user_identity);
+        diff.workflow = cache
+            .apply_diff_to_table::<Workflow>("workflow", &self.workflow)
+            .with_updates_by_pk(|row| &row.id);
+        diff.workflow_edge = cache
+            .apply_diff_to_table::<WorkflowEdge>("workflow_edge", &self.workflow_edge)
+            .with_updates_by_pk(|row| &row.id);
+        diff.workflow_node = cache
+            .apply_diff_to_table::<WorkflowNode>("workflow_node", &self.workflow_node)
+            .with_updates_by_pk(|row| &row.id);
+
+        diff
+    }
 }
 
 #[derive(Default)]
 #[allow(non_snake_case)]
 #[doc(hidden)]
 pub struct AppliedDiff<'r> {
-        execution_log: __sdk::TableAppliedDiff<'r, ExecutionLog>,
+    drag_state: __sdk::TableAppliedDiff<'r, DragState>,
+    execution_log: __sdk::TableAppliedDiff<'r, ExecutionLog>,
     user_presence: __sdk::TableAppliedDiff<'r, UserPresence>,
+    user_selection: __sdk::TableAppliedDiff<'r, UserSelection>,
     workflow: __sdk::TableAppliedDiff<'r, Workflow>,
     workflow_edge: __sdk::TableAppliedDiff<'r, WorkflowEdge>,
     workflow_node: __sdk::TableAppliedDiff<'r, WorkflowNode>,
     __unused: std::marker::PhantomData<&'r ()>,
 }
 
-
 impl __sdk::InModule for AppliedDiff<'_> {
     type Module = RemoteModule;
 }
 
 impl<'r> __sdk::AppliedDiff<'r> for AppliedDiff<'r> {
-    fn invoke_row_callbacks(&self, event: &EventContext, callbacks: &mut __sdk::DbCallbacks<RemoteModule>) {
-                callbacks.invoke_table_row_callbacks::<ExecutionLog>("execution_log", &self.execution_log, event);
-        callbacks.invoke_table_row_callbacks::<UserPresence>("user_presence", &self.user_presence, event);
+    fn invoke_row_callbacks(
+        &self,
+        event: &EventContext,
+        callbacks: &mut __sdk::DbCallbacks<RemoteModule>,
+    ) {
+        callbacks.invoke_table_row_callbacks::<DragState>("drag_state", &self.drag_state, event);
+        callbacks.invoke_table_row_callbacks::<ExecutionLog>(
+            "execution_log",
+            &self.execution_log,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<UserPresence>(
+            "user_presence",
+            &self.user_presence,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<UserSelection>(
+            "user_selection",
+            &self.user_selection,
+            event,
+        );
         callbacks.invoke_table_row_callbacks::<Workflow>("workflow", &self.workflow, event);
-        callbacks.invoke_table_row_callbacks::<WorkflowEdge>("workflow_edge", &self.workflow_edge, event);
-        callbacks.invoke_table_row_callbacks::<WorkflowNode>("workflow_node", &self.workflow_node, event);
+        callbacks.invoke_table_row_callbacks::<WorkflowEdge>(
+            "workflow_edge",
+            &self.workflow_edge,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<WorkflowNode>(
+            "workflow_node",
+            &self.workflow_node,
+            event,
+        );
+    }
 }
-}
-
 
 #[doc(hidden)]
 pub struct RemoteModule;
@@ -572,7 +811,6 @@ impl __sdk::SubscriptionHandle for SubscriptionHandle {
     fn unsubscribe(self) -> __sdk::Result<()> {
         self.imp.unsubscribe_then(None)
     }
-
 }
 
 /// Alias trait for a [`__sdk::DbContext`] connected to this module,
@@ -580,19 +818,25 @@ impl __sdk::SubscriptionHandle for SubscriptionHandle {
 ///
 /// Users can use this trait as a boundary on definitions which should accept
 /// either a [`DbConnection`] or an [`EventContext`] and operate on either.
-pub trait RemoteDbContext: __sdk::DbContext<
+pub trait RemoteDbContext:
+    __sdk::DbContext<
     DbView = RemoteTables,
     Reducers = RemoteReducers,
     SetReducerFlags = SetReducerFlags,
     SubscriptionBuilder = __sdk::SubscriptionBuilder<RemoteModule>,
-> {}
-impl<Ctx: __sdk::DbContext<
-    DbView = RemoteTables,
-    Reducers = RemoteReducers,
-    SetReducerFlags = SetReducerFlags,
-    SubscriptionBuilder = __sdk::SubscriptionBuilder<RemoteModule>,
->> RemoteDbContext for Ctx {}
-
+>
+{
+}
+impl<
+        Ctx: __sdk::DbContext<
+            DbView = RemoteTables,
+            Reducers = RemoteReducers,
+            SetReducerFlags = SetReducerFlags,
+            SubscriptionBuilder = __sdk::SubscriptionBuilder<RemoteModule>,
+        >,
+    > RemoteDbContext for Ctx
+{
+}
 
 /// An [`__sdk::DbContext`] augmented with a [`__sdk::Event`],
 /// passed to [`__sdk::Table::on_insert`], [`__sdk::Table::on_delete`] and [`__sdk::TableWithPrimaryKey::on_update`] callbacks.
@@ -1017,7 +1261,6 @@ impl __sdk::DbContext for ErrorContext {
 impl __sdk::ErrorContext for ErrorContext {}
 
 impl __sdk::SpacetimeModule for RemoteModule {
-    
     type DbConnection = DbConnection;
     type EventContext = EventContext;
     type ReducerEventContext = ReducerEventContext;
@@ -1032,11 +1275,13 @@ impl __sdk::SpacetimeModule for RemoteModule {
     type AppliedDiff<'r> = AppliedDiff<'r>;
     type SubscriptionHandle = SubscriptionHandle;
 
-fn register_tables(client_cache: &mut __sdk::ClientCache<Self>) {
-                execution_log_table::register_table(client_cache);
+    fn register_tables(client_cache: &mut __sdk::ClientCache<Self>) {
+        drag_state_table::register_table(client_cache);
+        execution_log_table::register_table(client_cache);
         user_presence_table::register_table(client_cache);
+        user_selection_table::register_table(client_cache);
         workflow_table::register_table(client_cache);
         workflow_edge_table::register_table(client_cache);
         workflow_node_table::register_table(client_cache);
-}
+    }
 }

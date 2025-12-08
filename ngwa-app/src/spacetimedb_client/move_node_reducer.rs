@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -26,8 +20,8 @@ impl From<MoveNodeArgs> for super::Reducer {
             node_uuid: args.node_uuid,
             position_x: args.position_x,
             position_y: args.position_y,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for MoveNodeArgs {
@@ -46,11 +40,13 @@ pub trait move_node {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_move_node`] callbacks.
-    fn move_node(&self, workflow_id: String,
-node_uuid: String,
-position_x: f32,
-position_y: f32,
-) -> __sdk::Result<()>;
+    fn move_node(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        position_x: f32,
+        position_y: f32,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `move_node`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -58,37 +54,60 @@ position_y: f32,
     ///
     /// The returned [`MoveNodeCallbackId`] can be passed to [`Self::remove_on_move_node`]
     /// to cancel the callback.
-    fn on_move_node(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &f32, &f32, ) + Send + 'static) -> MoveNodeCallbackId;
+    fn on_move_node(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String, &f32, &f32) + Send + 'static,
+    ) -> MoveNodeCallbackId;
     /// Cancel a callback previously registered by [`Self::on_move_node`],
     /// causing it not to run in the future.
     fn remove_on_move_node(&self, callback: MoveNodeCallbackId);
 }
 
 impl move_node for super::RemoteReducers {
-    fn move_node(&self, workflow_id: String,
-node_uuid: String,
-position_x: f32,
-position_y: f32,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("move_node", MoveNodeArgs { workflow_id, node_uuid, position_x, position_y,  })
+    fn move_node(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        position_x: f32,
+        position_y: f32,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "move_node",
+            MoveNodeArgs {
+                workflow_id,
+                node_uuid,
+                position_x,
+                position_y,
+            },
+        )
     }
     fn on_move_node(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &f32, &f32, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &f32, &f32)
+            + Send
+            + 'static,
     ) -> MoveNodeCallbackId {
         MoveNodeCallbackId(self.imp.on_reducer(
             "move_node",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::MoveNode {
-                            workflow_id, node_uuid, position_x, position_y, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::MoveNode {
+                                    workflow_id,
+                                    node_uuid,
+                                    position_x,
+                                    position_y,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, node_uuid, position_x, position_y, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, node_uuid, position_x, position_y)
             }),
         ))
     }
@@ -116,4 +135,3 @@ impl set_flags_for_move_node for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("move_node", flags);
     }
 }
-

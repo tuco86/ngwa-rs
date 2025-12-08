@@ -2,13 +2,8 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
 use super::workflow_edge_type::WorkflowEdge;
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 /// Table handle for the table `workflow_edge`.
 ///
@@ -49,8 +44,12 @@ impl<'ctx> __sdk::Table for WorkflowEdgeTableHandle<'ctx> {
     type Row = WorkflowEdge;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 { self.imp.count() }
-    fn iter(&self) -> impl Iterator<Item = WorkflowEdge> + '_ { self.imp.iter() }
+    fn count(&self) -> u64 {
+        self.imp.count()
+    }
+    fn iter(&self) -> impl Iterator<Item = WorkflowEdge> + '_ {
+        self.imp.iter()
+    }
 
     type InsertCallbackId = WorkflowEdgeInsertCallbackId;
 
@@ -81,8 +80,7 @@ impl<'ctx> __sdk::Table for WorkflowEdgeTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-
-        let _table = client_cache.get_or_make_table::<WorkflowEdge>("workflow_edge");
+    let _table = client_cache.get_or_make_table::<WorkflowEdge>("workflow_edge");
     _table.add_unique_constraint::<u64>("id", |row| &row.id);
 }
 pub struct WorkflowEdgeUpdateCallbackId(__sdk::CallbackId);
@@ -102,46 +100,43 @@ impl<'ctx> __sdk::TableWithPrimaryKey for WorkflowEdgeTableHandle<'ctx> {
     }
 }
 
-
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<WorkflowEdge>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse(
-            "TableUpdate<WorkflowEdge>",
-            "TableUpdate",
-        ).with_cause(e).into()
+        __sdk::InternalError::failed_parse("TableUpdate<WorkflowEdge>", "TableUpdate")
+            .with_cause(e)
+            .into()
     })
 }
 
-        /// Access to the `id` unique index on the table `workflow_edge`,
-        /// which allows point queries on the field of the same name
-        /// via the [`WorkflowEdgeIdUnique::find`] method.
-        ///
-        /// Users are encouraged not to explicitly reference this type,
-        /// but to directly chain method calls,
-        /// like `ctx.db.workflow_edge().id().find(...)`.
-        pub struct WorkflowEdgeIdUnique<'ctx> {
-            imp: __sdk::UniqueConstraintHandle<WorkflowEdge, u64>,
-            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-        }
+/// Access to the `id` unique index on the table `workflow_edge`,
+/// which allows point queries on the field of the same name
+/// via the [`WorkflowEdgeIdUnique::find`] method.
+///
+/// Users are encouraged not to explicitly reference this type,
+/// but to directly chain method calls,
+/// like `ctx.db.workflow_edge().id().find(...)`.
+pub struct WorkflowEdgeIdUnique<'ctx> {
+    imp: __sdk::UniqueConstraintHandle<WorkflowEdge, u64>,
+    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
+}
 
-        impl<'ctx> WorkflowEdgeTableHandle<'ctx> {
-            /// Get a handle on the `id` unique index on the table `workflow_edge`.
-            pub fn id(&self) -> WorkflowEdgeIdUnique<'ctx> {
-                WorkflowEdgeIdUnique {
-                    imp: self.imp.get_unique_constraint::<u64>("id"),
-                    phantom: std::marker::PhantomData,
-                }
-            }
+impl<'ctx> WorkflowEdgeTableHandle<'ctx> {
+    /// Get a handle on the `id` unique index on the table `workflow_edge`.
+    pub fn id(&self) -> WorkflowEdgeIdUnique<'ctx> {
+        WorkflowEdgeIdUnique {
+            imp: self.imp.get_unique_constraint::<u64>("id"),
+            phantom: std::marker::PhantomData,
         }
+    }
+}
 
-        impl<'ctx> WorkflowEdgeIdUnique<'ctx> {
-            /// Find the subscribed row whose `id` column value is equal to `col_val`,
-            /// if such a row is present in the client cache.
-            pub fn find(&self, col_val: &u64) -> Option<WorkflowEdge> {
-                self.imp.find(col_val)
-            }
-        }
-        
+impl<'ctx> WorkflowEdgeIdUnique<'ctx> {
+    /// Find the subscribed row whose `id` column value is equal to `col_val`,
+    /// if such a row is present in the client cache.
+    pub fn find(&self, col_val: &u64) -> Option<WorkflowEdge> {
+        self.imp.find(col_val)
+    }
+}

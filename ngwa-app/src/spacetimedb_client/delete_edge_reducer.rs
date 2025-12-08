@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -20,8 +14,8 @@ impl From<DeleteEdgeArgs> for super::Reducer {
     fn from(args: DeleteEdgeArgs) -> Self {
         Self::DeleteEdge {
             edge_id: args.edge_id,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for DeleteEdgeArgs {
@@ -40,8 +34,7 @@ pub trait delete_edge {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_delete_edge`] callbacks.
-    fn delete_edge(&self, edge_id: u64,
-) -> __sdk::Result<()>;
+    fn delete_edge(&self, edge_id: u64) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `delete_edge`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -49,34 +42,39 @@ pub trait delete_edge {
     ///
     /// The returned [`DeleteEdgeCallbackId`] can be passed to [`Self::remove_on_delete_edge`]
     /// to cancel the callback.
-    fn on_delete_edge(&self, callback: impl FnMut(&super::ReducerEventContext, &u64, ) + Send + 'static) -> DeleteEdgeCallbackId;
+    fn on_delete_edge(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &u64) + Send + 'static,
+    ) -> DeleteEdgeCallbackId;
     /// Cancel a callback previously registered by [`Self::on_delete_edge`],
     /// causing it not to run in the future.
     fn remove_on_delete_edge(&self, callback: DeleteEdgeCallbackId);
 }
 
 impl delete_edge for super::RemoteReducers {
-    fn delete_edge(&self, edge_id: u64,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("delete_edge", DeleteEdgeArgs { edge_id,  })
+    fn delete_edge(&self, edge_id: u64) -> __sdk::Result<()> {
+        self.imp
+            .call_reducer("delete_edge", DeleteEdgeArgs { edge_id })
     }
     fn on_delete_edge(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &u64, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &u64) + Send + 'static,
     ) -> DeleteEdgeCallbackId {
         DeleteEdgeCallbackId(self.imp.on_reducer(
             "delete_edge",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::DeleteEdge {
-                            edge_id, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer: super::Reducer::DeleteEdge { edge_id },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, edge_id, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, edge_id)
             }),
         ))
     }
@@ -104,4 +102,3 @@ impl set_flags_for_delete_edge for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("delete_edge", flags);
     }
 }
-

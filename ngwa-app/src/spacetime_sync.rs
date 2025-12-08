@@ -47,6 +47,49 @@ pub enum DbUpdate {
         from_node_uuid: String,
         to_node_uuid: String,
     },
+
+    // User presence updates (collaboration)
+    UserJoined {
+        identity: String,
+        workflow_id: String,
+        nickname: String,
+        color: u32,
+    },
+    UserLeft {
+        identity: String,
+    },
+    UserCursorMoved {
+        identity: String,
+        workflow_id: String,
+        x: f32,
+        y: f32,
+    },
+
+    // User selection updates
+    UserSelectionChanged {
+        identity: String,
+        workflow_id: String,
+        node_uuids: String, // JSON array
+    },
+
+    // Drag state updates
+    UserDragStarted {
+        identity: String,
+        workflow_id: String,
+        drag_type: String,
+        node_uuids: String,
+        from_pin: String,
+        start_x: f32,
+        start_y: f32,
+    },
+    UserDragUpdated {
+        identity: String,
+        x: f32,
+        y: f32,
+    },
+    UserDragEnded {
+        identity: String,
+    },
 }
 
 /// Thread-safe queue for updates from SpacetimeDB callbacks

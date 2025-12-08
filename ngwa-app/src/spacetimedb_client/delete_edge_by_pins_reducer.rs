@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -28,8 +22,8 @@ impl From<DeleteEdgeByPinsArgs> for super::Reducer {
             from_output: args.from_output,
             to_node_uuid: args.to_node_uuid,
             to_input: args.to_input,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for DeleteEdgeByPinsArgs {
@@ -48,12 +42,14 @@ pub trait delete_edge_by_pins {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_delete_edge_by_pins`] callbacks.
-    fn delete_edge_by_pins(&self, workflow_id: String,
-from_node_uuid: String,
-from_output: String,
-to_node_uuid: String,
-to_input: String,
-) -> __sdk::Result<()>;
+    fn delete_edge_by_pins(
+        &self,
+        workflow_id: String,
+        from_node_uuid: String,
+        from_output: String,
+        to_node_uuid: String,
+        to_input: String,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `delete_edge_by_pins`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -61,43 +57,78 @@ to_input: String,
     ///
     /// The returned [`DeleteEdgeByPinsCallbackId`] can be passed to [`Self::remove_on_delete_edge_by_pins`]
     /// to cancel the callback.
-    fn on_delete_edge_by_pins(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String, ) + Send + 'static) -> DeleteEdgeByPinsCallbackId;
+    fn on_delete_edge_by_pins(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String)
+            + Send
+            + 'static,
+    ) -> DeleteEdgeByPinsCallbackId;
     /// Cancel a callback previously registered by [`Self::on_delete_edge_by_pins`],
     /// causing it not to run in the future.
     fn remove_on_delete_edge_by_pins(&self, callback: DeleteEdgeByPinsCallbackId);
 }
 
 impl delete_edge_by_pins for super::RemoteReducers {
-    fn delete_edge_by_pins(&self, workflow_id: String,
-from_node_uuid: String,
-from_output: String,
-to_node_uuid: String,
-to_input: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("delete_edge_by_pins", DeleteEdgeByPinsArgs { workflow_id, from_node_uuid, from_output, to_node_uuid, to_input,  })
+    fn delete_edge_by_pins(
+        &self,
+        workflow_id: String,
+        from_node_uuid: String,
+        from_output: String,
+        to_node_uuid: String,
+        to_input: String,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "delete_edge_by_pins",
+            DeleteEdgeByPinsArgs {
+                workflow_id,
+                from_node_uuid,
+                from_output,
+                to_node_uuid,
+                to_input,
+            },
+        )
     }
     fn on_delete_edge_by_pins(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String)
+            + Send
+            + 'static,
     ) -> DeleteEdgeByPinsCallbackId {
         DeleteEdgeByPinsCallbackId(self.imp.on_reducer(
             "delete_edge_by_pins",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::DeleteEdgeByPins {
-                            workflow_id, from_node_uuid, from_output, to_node_uuid, to_input, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::DeleteEdgeByPins {
+                                    workflow_id,
+                                    from_node_uuid,
+                                    from_output,
+                                    to_node_uuid,
+                                    to_input,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, from_node_uuid, from_output, to_node_uuid, to_input, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(
+                    ctx,
+                    workflow_id,
+                    from_node_uuid,
+                    from_output,
+                    to_node_uuid,
+                    to_input,
+                )
             }),
         ))
     }
     fn remove_on_delete_edge_by_pins(&self, callback: DeleteEdgeByPinsCallbackId) {
-        self.imp.remove_on_reducer("delete_edge_by_pins", callback.0)
+        self.imp
+            .remove_on_reducer("delete_edge_by_pins", callback.0)
     }
 }
 
@@ -117,7 +148,7 @@ pub trait set_flags_for_delete_edge_by_pins {
 
 impl set_flags_for_delete_edge_by_pins for super::SetReducerFlags {
     fn delete_edge_by_pins(&self, flags: __ws::CallReducerFlags) {
-        self.imp.set_call_reducer_flags("delete_edge_by_pins", flags);
+        self.imp
+            .set_call_reducer_flags("delete_edge_by_pins", flags);
     }
 }
-

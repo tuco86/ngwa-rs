@@ -98,6 +98,40 @@ pub struct UserPresence {
 }
 
 // ============================================================================
+// COLLABORATION: USER SELECTION
+// ============================================================================
+
+#[spacetimedb::table(name = user_selection, public)]
+pub struct UserSelection {
+    #[primary_key]
+    pub user_identity: Identity,
+    #[index(btree)]
+    pub workflow_id: String,
+    pub selected_node_uuids: String, // JSON array ["uuid1", "uuid2"]
+    pub last_updated: Timestamp,
+}
+
+// ============================================================================
+// COLLABORATION: DRAG STATE
+// ============================================================================
+
+#[spacetimedb::table(name = drag_state, public)]
+pub struct DragState {
+    #[primary_key]
+    pub user_identity: Identity,
+    #[index(btree)]
+    pub workflow_id: String,
+    pub drag_type: String,        // "node", "group", "edge", "box_select"
+    pub node_uuids: String,       // JSON array for affected nodes
+    pub from_pin: String,         // For edge drag: "node_uuid:pin_id", empty otherwise
+    pub start_x: f32,
+    pub start_y: f32,
+    pub current_x: f32,
+    pub current_y: f32,
+    pub last_updated: Timestamp,
+}
+
+// ============================================================================
 // INIT REDUCER
 // ============================================================================
 
@@ -502,5 +536,83 @@ pub fn update_nickname(ctx: &ReducerContext, nickname: String) {
     if let Some(mut presence) = ctx.db.user_presence().user_identity().find(ctx.sender) {
         presence.nickname = nickname;
         ctx.db.user_presence().user_identity().update(presence);
+    }
+}
+
+// ============================================================================
+// SELECTION REDUCERS
+// ============================================================================
+
+#[spacetimedb::reducer]
+pub fn update_selection(ctx: &ReducerContext, workflow_id: String, node_uuids: String) {
+    if let Some(mut selection) = ctx.db.user_selection().user_identity().find(ctx.sender) {
+        selection.workflow_id = workflow_id;
+        selection.selected_node_uuids = node_uuids;
+        selection.last_updated = ctx.timestamp;
+        ctx.db.user_selection().user_identity().update(selection);
+    } else {
+        ctx.db.user_selection().insert(UserSelection {
+            user_identity: ctx.sender,
+            workflow_id,
+            selected_node_uuids: node_uuids,
+            last_updated: ctx.timestamp,
+        });
+    }
+}
+
+#[spacetimedb::reducer]
+pub fn clear_selection(ctx: &ReducerContext) {
+    if let Some(selection) = ctx.db.user_selection().user_identity().find(ctx.sender) {
+        ctx.db.user_selection().user_identity().delete(selection.user_identity);
+    }
+}
+
+// ============================================================================
+// DRAG STATE REDUCERS
+// ============================================================================
+
+#[spacetimedb::reducer]
+pub fn start_drag(
+    ctx: &ReducerContext,
+    workflow_id: String,
+    drag_type: String,
+    node_uuids: String,
+    from_pin: String,
+    x: f32,
+    y: f32,
+) {
+    // Remove any existing drag state for this user
+    if let Some(existing) = ctx.db.drag_state().user_identity().find(ctx.sender) {
+        ctx.db.drag_state().user_identity().delete(existing.user_identity);
+    }
+
+    ctx.db.drag_state().insert(DragState {
+        user_identity: ctx.sender,
+        workflow_id,
+        drag_type,
+        node_uuids,
+        from_pin,
+        start_x: x,
+        start_y: y,
+        current_x: x,
+        current_y: y,
+        last_updated: ctx.timestamp,
+    });
+}
+
+#[spacetimedb::reducer]
+pub fn update_drag(ctx: &ReducerContext, x: f32, y: f32) {
+    if let Some(mut drag) = ctx.db.drag_state().user_identity().find(ctx.sender) {
+        drag.current_x = x;
+        drag.current_y = y;
+        drag.last_updated = ctx.timestamp;
+        ctx.db.drag_state().user_identity().update(drag);
+    }
+}
+
+#[spacetimedb::reducer]
+pub fn end_drag(ctx: &ReducerContext) {
+    if let Some(drag) = ctx.db.drag_state().user_identity().find(ctx.sender) {
+        ctx.db.drag_state().user_identity().delete(drag.user_identity);
     }
 }

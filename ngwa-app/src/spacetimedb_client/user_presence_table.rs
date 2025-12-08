@@ -2,13 +2,8 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
 use super::user_presence_type::UserPresence;
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 /// Table handle for the table `user_presence`.
 ///
@@ -49,8 +44,12 @@ impl<'ctx> __sdk::Table for UserPresenceTableHandle<'ctx> {
     type Row = UserPresence;
     type EventContext = super::EventContext;
 
-    fn count(&self) -> u64 { self.imp.count() }
-    fn iter(&self) -> impl Iterator<Item = UserPresence> + '_ { self.imp.iter() }
+    fn count(&self) -> u64 {
+        self.imp.count()
+    }
+    fn iter(&self) -> impl Iterator<Item = UserPresence> + '_ {
+        self.imp.iter()
+    }
 
     type InsertCallbackId = UserPresenceInsertCallbackId;
 
@@ -81,8 +80,7 @@ impl<'ctx> __sdk::Table for UserPresenceTableHandle<'ctx> {
 
 #[doc(hidden)]
 pub(super) fn register_table(client_cache: &mut __sdk::ClientCache<super::RemoteModule>) {
-
-        let _table = client_cache.get_or_make_table::<UserPresence>("user_presence");
+    let _table = client_cache.get_or_make_table::<UserPresence>("user_presence");
     _table.add_unique_constraint::<__sdk::Identity>("user_identity", |row| &row.user_identity);
 }
 pub struct UserPresenceUpdateCallbackId(__sdk::CallbackId);
@@ -102,46 +100,45 @@ impl<'ctx> __sdk::TableWithPrimaryKey for UserPresenceTableHandle<'ctx> {
     }
 }
 
-
 #[doc(hidden)]
 pub(super) fn parse_table_update(
     raw_updates: __ws::TableUpdate<__ws::BsatnFormat>,
 ) -> __sdk::Result<__sdk::TableUpdate<UserPresence>> {
     __sdk::TableUpdate::parse_table_update(raw_updates).map_err(|e| {
-        __sdk::InternalError::failed_parse(
-            "TableUpdate<UserPresence>",
-            "TableUpdate",
-        ).with_cause(e).into()
+        __sdk::InternalError::failed_parse("TableUpdate<UserPresence>", "TableUpdate")
+            .with_cause(e)
+            .into()
     })
 }
 
-        /// Access to the `user_identity` unique index on the table `user_presence`,
-        /// which allows point queries on the field of the same name
-        /// via the [`UserPresenceUserIdentityUnique::find`] method.
-        ///
-        /// Users are encouraged not to explicitly reference this type,
-        /// but to directly chain method calls,
-        /// like `ctx.db.user_presence().user_identity().find(...)`.
-        pub struct UserPresenceUserIdentityUnique<'ctx> {
-            imp: __sdk::UniqueConstraintHandle<UserPresence, __sdk::Identity>,
-            phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
-        }
+/// Access to the `user_identity` unique index on the table `user_presence`,
+/// which allows point queries on the field of the same name
+/// via the [`UserPresenceUserIdentityUnique::find`] method.
+///
+/// Users are encouraged not to explicitly reference this type,
+/// but to directly chain method calls,
+/// like `ctx.db.user_presence().user_identity().find(...)`.
+pub struct UserPresenceUserIdentityUnique<'ctx> {
+    imp: __sdk::UniqueConstraintHandle<UserPresence, __sdk::Identity>,
+    phantom: std::marker::PhantomData<&'ctx super::RemoteTables>,
+}
 
-        impl<'ctx> UserPresenceTableHandle<'ctx> {
-            /// Get a handle on the `user_identity` unique index on the table `user_presence`.
-            pub fn user_identity(&self) -> UserPresenceUserIdentityUnique<'ctx> {
-                UserPresenceUserIdentityUnique {
-                    imp: self.imp.get_unique_constraint::<__sdk::Identity>("user_identity"),
-                    phantom: std::marker::PhantomData,
-                }
-            }
+impl<'ctx> UserPresenceTableHandle<'ctx> {
+    /// Get a handle on the `user_identity` unique index on the table `user_presence`.
+    pub fn user_identity(&self) -> UserPresenceUserIdentityUnique<'ctx> {
+        UserPresenceUserIdentityUnique {
+            imp: self
+                .imp
+                .get_unique_constraint::<__sdk::Identity>("user_identity"),
+            phantom: std::marker::PhantomData,
         }
+    }
+}
 
-        impl<'ctx> UserPresenceUserIdentityUnique<'ctx> {
-            /// Find the subscribed row whose `user_identity` column value is equal to `col_val`,
-            /// if such a row is present in the client cache.
-            pub fn find(&self, col_val: &__sdk::Identity) -> Option<UserPresence> {
-                self.imp.find(col_val)
-            }
-        }
-        
+impl<'ctx> UserPresenceUserIdentityUnique<'ctx> {
+    /// Find the subscribed row whose `user_identity` column value is equal to `col_val`,
+    /// if such a row is present in the client cache.
+    pub fn find(&self, col_val: &__sdk::Identity) -> Option<UserPresence> {
+        self.imp.find(col_val)
+    }
+}

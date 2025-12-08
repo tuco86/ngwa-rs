@@ -6,17 +6,13 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub struct ExecutionLog {
-    pub id: u64,
+pub struct UserSelection {
+    pub user_identity: __sdk::Identity,
     pub workflow_id: String,
-    pub started_at: __sdk::Timestamp,
-    pub finished_at: Option<__sdk::Timestamp>,
-    pub status: String,
-    pub trigger_type: String,
-    pub error_message: Option<String>,
-    pub triggered_by: __sdk::Identity,
+    pub selected_node_uuids: String,
+    pub last_updated: __sdk::Timestamp,
 }
 
-impl __sdk::InModule for ExecutionLog {
+impl __sdk::InModule for UserSelection {
     type Module = super::RemoteModule;
 }

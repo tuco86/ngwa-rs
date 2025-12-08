@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<ShareWorkflowArgs> for super::Reducer {
         Self::ShareWorkflow {
             workflow_id: args.workflow_id,
             is_shared: args.is_shared,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for ShareWorkflowArgs {
@@ -42,9 +36,7 @@ pub trait share_workflow {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_share_workflow`] callbacks.
-    fn share_workflow(&self, workflow_id: String,
-is_shared: bool,
-) -> __sdk::Result<()>;
+    fn share_workflow(&self, workflow_id: String, is_shared: bool) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `share_workflow`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,35 +44,48 @@ is_shared: bool,
     ///
     /// The returned [`ShareWorkflowCallbackId`] can be passed to [`Self::remove_on_share_workflow`]
     /// to cancel the callback.
-    fn on_share_workflow(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &bool, ) + Send + 'static) -> ShareWorkflowCallbackId;
+    fn on_share_workflow(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &bool) + Send + 'static,
+    ) -> ShareWorkflowCallbackId;
     /// Cancel a callback previously registered by [`Self::on_share_workflow`],
     /// causing it not to run in the future.
     fn remove_on_share_workflow(&self, callback: ShareWorkflowCallbackId);
 }
 
 impl share_workflow for super::RemoteReducers {
-    fn share_workflow(&self, workflow_id: String,
-is_shared: bool,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("share_workflow", ShareWorkflowArgs { workflow_id, is_shared,  })
+    fn share_workflow(&self, workflow_id: String, is_shared: bool) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "share_workflow",
+            ShareWorkflowArgs {
+                workflow_id,
+                is_shared,
+            },
+        )
     }
     fn on_share_workflow(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &bool, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &bool) + Send + 'static,
     ) -> ShareWorkflowCallbackId {
         ShareWorkflowCallbackId(self.imp.on_reducer(
             "share_workflow",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::ShareWorkflow {
-                            workflow_id, is_shared, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::ShareWorkflow {
+                                    workflow_id,
+                                    is_shared,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, is_shared, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, is_shared)
             }),
         ))
     }
@@ -108,4 +113,3 @@ impl set_flags_for_share_workflow for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("share_workflow", flags);
     }
 }
-

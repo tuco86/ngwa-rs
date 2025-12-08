@@ -6,9 +6,12 @@
 mod spacetime_sync;
 mod spacetimedb_client;
 
-use iced::widget::{button, column, container, row, scrollable, stack, text, text_input};
-use iced::{keyboard, window, Element, Event, Length, Subscription, Task, Theme};
-use iced_nodegraph::{node_graph, NodeGraph, PinReference};
+use iced::widget::{button, column, container, mouse_area, row, scrollable, stack, text, text_input};
+use iced::{keyboard, window, Color, Element, Event, Length, Subscription, Task, Theme};
+use iced_nodegraph::{
+    node_graph, node_pin, DragInfo, NodeContentStyle, NodeGraph, PinDirection, PinReference, PinSide,
+    node_title_bar,
+};
 use iced_palette::{
     Command, Shortcut, command, command_palette, find_matching_shortcut, focus_input,
     get_filtered_command_index, get_filtered_count, is_toggle_shortcut, navigate_down, navigate_up,
@@ -16,10 +19,13 @@ use iced_palette::{
 use ngwa_core::{Workflow, WorkflowNode};
 use spacetimedb_client::{
     DbConnection,
-    // Table access traits (needed for .workflow(), .workflow_node(), .workflow_edge())
+    // Table access traits
     WorkflowTableAccess,
     WorkflowNodeTableAccess,
     WorkflowEdgeTableAccess,
+    UserPresenceTableAccess,
+    UserSelectionTableAccess,
+    DragStateTableAccess,
     // Reducer traits (needed for calling reducers on conn.reducers)
     create_workflow_reducer::create_workflow,
     delete_workflow_reducer::delete_workflow,
@@ -28,17 +34,91 @@ use spacetimedb_client::{
     add_edge_reducer::add_edge,
     delete_edge_by_pins_reducer::delete_edge_by_pins,
     delete_node_reducer::delete_node,
+    join_workflow_reducer::join_workflow,
+    leave_workflow_reducer::leave_workflow,
+    update_cursor_reducer::update_cursor,
+    update_selection_reducer::update_selection,
+    start_drag_reducer::start_drag,
+    update_drag_reducer::update_drag,
+    end_drag_reducer::end_drag,
 };
 use spacetimedb_sdk::{DbContext, Table, TableWithPrimaryKey};
 use std::sync::OnceLock;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 const SPACETIMEDB_URI: &str = "http://localhost:3000";
-const DATABASE_NAME: &str = "ngwa";
+const DATABASE_NAME: &str = "ngwa-spacetime";
 
 /// Global connection holder (initialized once)
 static DB_CONNECTION: OnceLock<DbConnection> = OnceLock::new();
+
+/// Predefined collaboration colors (distinct and visible)
+const COLLAB_COLORS: [u32; 12] = [
+    0xFF5733, // Orange-red
+    0x33FF57, // Green
+    0x3357FF, // Blue
+    0xFF33F5, // Magenta
+    0xFFD700, // Gold
+    0x00CED1, // Dark Turquoise
+    0xFF6347, // Tomato
+    0x7B68EE, // Medium Slate Blue
+    0x32CD32, // Lime Green
+    0xFF69B4, // Hot Pink
+    0x00BFFF, // Deep Sky Blue
+    0xFFA500, // Orange
+];
+
+/// Generate a random user color from the palette
+fn generate_user_color() -> u32 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let seed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as usize)
+        .unwrap_or(0);
+    COLLAB_COLORS[seed % COLLAB_COLORS.len()]
+}
+
+/// State for a remote collaborator
+#[derive(Debug, Clone)]
+struct RemoteUser {
+    /// SpacetimeDB identity as hex string
+    identity: String,
+    /// Display nickname
+    nickname: String,
+    /// User's color (RGB as u32)
+    color: u32,
+    /// Cursor position in world space (None if not in same workflow)
+    cursor: Option<iced::Point>,
+    /// Currently selected node UUIDs
+    selected_nodes: HashSet<String>,
+    /// Current drag state
+    drag_state: Option<RemoteDragState>,
+}
+
+/// Remote user's drag operation
+#[derive(Debug, Clone)]
+enum RemoteDragState {
+    /// Dragging nodes
+    Node {
+        node_uuids: Vec<String>,
+        current_x: f32,
+        current_y: f32,
+    },
+    /// Dragging an edge from a pin
+    Edge {
+        from_pin: String,
+        current_x: f32,
+        current_y: f32,
+    },
+    /// Box selection
+    BoxSelect {
+        start_x: f32,
+        start_y: f32,
+        current_x: f32,
+        current_y: f32,
+    },
+}
 
 fn main() -> iced::Result {
     iced::application(NgwaApp::new, NgwaApp::update, NgwaApp::view)
@@ -90,6 +170,22 @@ struct NgwaApp {
     command_input: String,
     palette_view: PaletteView,
     palette_selected_index: usize,
+
+    // Collaboration state
+    /// User's nickname for collaboration
+    user_nickname: Option<String>,
+    /// User's assigned color (RGB as u32)
+    user_color: u32,
+    /// Input for nickname dialog
+    nickname_input: String,
+    /// Whether the nickname dialog is open
+    nickname_dialog_open: bool,
+    /// Pending workflow ID to open after nickname is set
+    pending_workflow_id: Option<String>,
+    /// Our SpacetimeDB identity (hex string)
+    my_identity: Option<String>,
+    /// Remote users in the current workflow (keyed by identity hex)
+    remote_users: HashMap<String, RemoteUser>,
 }
 
 /// Command palette view state
@@ -160,6 +256,10 @@ enum Message {
     },
     SelectionChanged(Vec<usize>),
     DeleteNodes(Vec<usize>),
+    GroupMoved {
+        node_ids: Vec<usize>,
+        delta: iced::Vector,
+    },
 
     // Command palette
     ToggleCommandPalette,
@@ -179,6 +279,17 @@ enum Message {
 
     // Theme
     ChangeTheme(Theme),
+
+    // Nickname dialog
+    NicknameInputChanged(String),
+    NicknameConfirm,
+    NicknameCancel,
+
+    // Collaboration events
+    CursorMoved { x: f32, y: f32 },
+    DragStarted(iced_nodegraph::DragInfo),
+    DragUpdated { x: f32, y: f32 },
+    DragEnded,
 
     // Animation tick
     Tick,
@@ -201,6 +312,14 @@ impl NgwaApp {
             command_input: String::new(),
             palette_view: PaletteView::Main,
             palette_selected_index: 0,
+            // Collaboration state
+            user_nickname: None,
+            user_color: generate_user_color(),
+            nickname_input: String::new(),
+            nickname_dialog_open: false,
+            pending_workflow_id: None,
+            my_identity: None,
+            remote_users: HashMap::new(),
         };
 
         // Connect to SpacetimeDB after short delay
@@ -303,15 +422,87 @@ impl NgwaApp {
                                     });
                                 });
 
+                                // User presence callbacks (collaboration)
+                                conn.db.user_presence().on_insert(|_ctx, presence| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserJoined {
+                                        identity: presence.user_identity.to_string(),
+                                        workflow_id: presence.workflow_id.clone(),
+                                        nickname: presence.nickname.clone(),
+                                        color: presence.cursor_color,
+                                    });
+                                });
+
+                                conn.db.user_presence().on_update(|_ctx, _old, presence| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserCursorMoved {
+                                        identity: presence.user_identity.to_string(),
+                                        workflow_id: presence.workflow_id.clone(),
+                                        x: presence.cursor_x,
+                                        y: presence.cursor_y,
+                                    });
+                                });
+
+                                conn.db.user_presence().on_delete(|_ctx, presence| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserLeft {
+                                        identity: presence.user_identity.to_string(),
+                                    });
+                                });
+
+                                // User selection callbacks
+                                conn.db.user_selection().on_insert(|_ctx, selection| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserSelectionChanged {
+                                        identity: selection.user_identity.to_string(),
+                                        workflow_id: selection.workflow_id.clone(),
+                                        node_uuids: selection.selected_node_uuids.clone(),
+                                    });
+                                });
+
+                                conn.db.user_selection().on_update(|_ctx, _old, selection| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserSelectionChanged {
+                                        identity: selection.user_identity.to_string(),
+                                        workflow_id: selection.workflow_id.clone(),
+                                        node_uuids: selection.selected_node_uuids.clone(),
+                                    });
+                                });
+
+                                // Drag state callbacks
+                                conn.db.drag_state().on_insert(|_ctx, drag| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserDragStarted {
+                                        identity: drag.user_identity.to_string(),
+                                        workflow_id: drag.workflow_id.clone(),
+                                        drag_type: drag.drag_type.clone(),
+                                        node_uuids: drag.node_uuids.clone(),
+                                        from_pin: drag.from_pin.clone(),
+                                        start_x: drag.start_x,
+                                        start_y: drag.start_y,
+                                    });
+                                });
+
+                                conn.db.drag_state().on_update(|_ctx, _old, drag| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserDragUpdated {
+                                        identity: drag.user_identity.to_string(),
+                                        x: drag.current_x,
+                                        y: drag.current_y,
+                                    });
+                                });
+
+                                conn.db.drag_state().on_delete(|_ctx, drag| {
+                                    spacetime_sync::push_update(spacetime_sync::DbUpdate::UserDragEnded {
+                                        identity: drag.user_identity.to_string(),
+                                    });
+                                });
+
                                 // Start the connection processing thread AFTER registering callbacks
                                 conn.run_threaded();
 
-                                // Subscribe to all tables
+                                // Subscribe to all tables including collaboration tables
                                 conn.subscription_builder()
                                     .subscribe([
                                         "SELECT * FROM workflow",
                                         "SELECT * FROM workflow_node",
                                         "SELECT * FROM workflow_edge",
+                                        "SELECT * FROM user_presence",
+                                        "SELECT * FROM user_selection",
+                                        "SELECT * FROM drag_state",
                                     ]);
 
                                 // Store in global holder
@@ -330,6 +521,12 @@ impl NgwaApp {
 
             Message::ConnectionSuccess => {
                 self.connection_status = ConnectionStatus::Connected;
+                // Store our identity
+                if let Some(conn) = get_connection() {
+                    if let Some(identity) = conn.try_identity() {
+                        self.my_identity = Some(identity.to_string());
+                    }
+                }
                 // Start tick loop - initial data comes via on_insert callbacks
                 return Task::done(Message::ConnectionTick);
             }
@@ -362,7 +559,7 @@ impl NgwaApp {
                         spacetime_sync::DbUpdate::NodeMoved { workflow_id, node_uuid, x, y } => {
                             // Update node position if we're viewing this workflow
                             if self.current_workflow_id.as_ref() == Some(&workflow_id) {
-                                if let Some(ref workflow) = self.current_workflow {
+                                if let Some(ref mut workflow) = self.current_workflow {
                                     // Find node index by UUID
                                     if let Some(idx) = workflow.nodes.iter()
                                         .position(|n| n.id.to_string() == node_uuid)
@@ -370,13 +567,244 @@ impl NgwaApp {
                                         if idx < self.node_positions.len() {
                                             self.node_positions[idx] = iced::Point::new(x, y);
                                         }
+                                        // Also update the workflow node position
+                                        if let Some(node) = workflow.nodes.get_mut(idx) {
+                                            node.position = (x, y);
+                                        }
                                     }
                                 }
                             }
                         }
-                        // Node and edge inserts/deletes could be handled here for live collaboration
-                        // For now, we reload on view change
-                        _ => {}
+                        spacetime_sync::DbUpdate::NodeInserted {
+                            workflow_id,
+                            node_uuid,
+                            node_type,
+                            name,
+                            position_x,
+                            position_y,
+                        } => {
+                            // Add node if we're viewing this workflow and it doesn't exist
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(ref mut workflow) = self.current_workflow {
+                                    // Check if node already exists
+                                    let exists = workflow.nodes.iter()
+                                        .any(|n| n.id.to_string() == node_uuid);
+                                    if !exists {
+                                        let node_id = Uuid::parse_str(&node_uuid)
+                                            .unwrap_or_else(|_| Uuid::new_v4());
+                                        let node = WorkflowNode::new(&node_type, (position_x, position_y))
+                                            .with_id(node_id)
+                                            .with_name(&name);
+                                        workflow.add_node(node);
+                                        self.node_positions.push(iced::Point::new(position_x, position_y));
+                                    }
+                                }
+                            }
+                        }
+                        spacetime_sync::DbUpdate::NodeDeleted { workflow_id, node_uuid } => {
+                            // Remove node if we're viewing this workflow
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(ref mut workflow) = self.current_workflow {
+                                    if let Some(idx) = workflow.nodes.iter()
+                                        .position(|n| n.id.to_string() == node_uuid)
+                                    {
+                                        workflow.nodes.remove(idx);
+                                        if idx < self.node_positions.len() {
+                                            self.node_positions.remove(idx);
+                                        }
+                                        // Also remove edges connected to this node
+                                        self.edges.retain(|(from, to)| {
+                                            from.node_id != idx && to.node_id != idx
+                                        });
+                                        // Adjust edge indices for nodes after the removed one
+                                        for (from, to) in &mut self.edges {
+                                            if from.node_id > idx {
+                                                from.node_id -= 1;
+                                            }
+                                            if to.node_id > idx {
+                                                to.node_id -= 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        spacetime_sync::DbUpdate::EdgeInserted {
+                            workflow_id,
+                            from_node_uuid,
+                            from_output: _,
+                            to_node_uuid,
+                            to_input: _,
+                        } => {
+                            // Add edge if we're viewing this workflow
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(ref workflow) = self.current_workflow {
+                                    let from_idx = workflow.nodes.iter()
+                                        .position(|n| n.id.to_string() == from_node_uuid);
+                                    let to_idx = workflow.nodes.iter()
+                                        .position(|n| n.id.to_string() == to_node_uuid);
+
+                                    if let (Some(from), Some(to)) = (from_idx, to_idx) {
+                                        let edge = (
+                                            PinReference::new(from, 0),
+                                            PinReference::new(to, 0),
+                                        );
+                                        // Only add if not already present
+                                        if !self.edges.contains(&edge) {
+                                            self.edges.push(edge);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        spacetime_sync::DbUpdate::EdgeDeleted {
+                            workflow_id,
+                            from_node_uuid,
+                            to_node_uuid,
+                        } => {
+                            // Remove edge if we're viewing this workflow
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(ref workflow) = self.current_workflow {
+                                    let from_idx = workflow.nodes.iter()
+                                        .position(|n| n.id.to_string() == from_node_uuid);
+                                    let to_idx = workflow.nodes.iter()
+                                        .position(|n| n.id.to_string() == to_node_uuid);
+
+                                    if let (Some(from), Some(to)) = (from_idx, to_idx) {
+                                        self.edges.retain(|(f, t)| {
+                                            !(f.node_id == from && t.node_id == to)
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
+                        // Collaboration: User joined
+                        spacetime_sync::DbUpdate::UserJoined {
+                            identity,
+                            workflow_id,
+                            nickname,
+                            color,
+                        } => {
+                            // Only track users in our current workflow, and skip ourselves
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id)
+                                && self.my_identity.as_ref() != Some(&identity)
+                            {
+                                self.remote_users.insert(
+                                    identity.clone(),
+                                    RemoteUser {
+                                        identity,
+                                        nickname,
+                                        color,
+                                        cursor: None,
+                                        selected_nodes: HashSet::new(),
+                                        drag_state: None,
+                                    },
+                                );
+                            }
+                        }
+
+                        // Collaboration: User left
+                        spacetime_sync::DbUpdate::UserLeft { identity } => {
+                            self.remote_users.remove(&identity);
+                        }
+
+                        // Collaboration: Cursor moved
+                        spacetime_sync::DbUpdate::UserCursorMoved {
+                            identity,
+                            workflow_id,
+                            x,
+                            y,
+                        } => {
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(user) = self.remote_users.get_mut(&identity) {
+                                    user.cursor = Some(iced::Point::new(x, y));
+                                }
+                            }
+                        }
+
+                        // Collaboration: Selection changed
+                        spacetime_sync::DbUpdate::UserSelectionChanged {
+                            identity,
+                            workflow_id,
+                            node_uuids,
+                        } => {
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(user) = self.remote_users.get_mut(&identity) {
+                                    // Parse JSON array
+                                    if let Ok(uuids) = serde_json::from_str::<Vec<String>>(&node_uuids) {
+                                        user.selected_nodes = uuids.into_iter().collect();
+                                    }
+                                }
+                            }
+                        }
+
+                        // Collaboration: Drag started
+                        spacetime_sync::DbUpdate::UserDragStarted {
+                            identity,
+                            workflow_id,
+                            drag_type,
+                            node_uuids,
+                            from_pin,
+                            start_x,
+                            start_y,
+                        } => {
+                            if self.current_workflow_id.as_ref() == Some(&workflow_id) {
+                                if let Some(user) = self.remote_users.get_mut(&identity) {
+                                    user.drag_state = match drag_type.as_str() {
+                                        "node" | "group" => {
+                                            let uuids = serde_json::from_str::<Vec<String>>(&node_uuids)
+                                                .unwrap_or_default();
+                                            Some(RemoteDragState::Node {
+                                                node_uuids: uuids,
+                                                current_x: start_x,
+                                                current_y: start_y,
+                                            })
+                                        }
+                                        "edge" => Some(RemoteDragState::Edge {
+                                            from_pin,
+                                            current_x: start_x,
+                                            current_y: start_y,
+                                        }),
+                                        "box_select" => Some(RemoteDragState::BoxSelect {
+                                            start_x,
+                                            start_y,
+                                            current_x: start_x,
+                                            current_y: start_y,
+                                        }),
+                                        _ => None,
+                                    };
+                                }
+                            }
+                        }
+
+                        // Collaboration: Drag updated
+                        spacetime_sync::DbUpdate::UserDragUpdated { identity, x, y } => {
+                            if let Some(user) = self.remote_users.get_mut(&identity) {
+                                match &mut user.drag_state {
+                                    Some(RemoteDragState::Node { current_x, current_y, .. }) => {
+                                        *current_x = x;
+                                        *current_y = y;
+                                    }
+                                    Some(RemoteDragState::Edge { current_x, current_y, .. }) => {
+                                        *current_x = x;
+                                        *current_y = y;
+                                    }
+                                    Some(RemoteDragState::BoxSelect { current_x, current_y, .. }) => {
+                                        *current_x = x;
+                                        *current_y = y;
+                                    }
+                                    None => {}
+                                }
+                            }
+                        }
+
+                        // Collaboration: Drag ended
+                        spacetime_sync::DbUpdate::UserDragEnded { identity } => {
+                            if let Some(user) = self.remote_users.get_mut(&identity) {
+                                user.drag_state = None;
+                            }
+                        }
                     }
                 }
 
@@ -392,13 +820,32 @@ impl NgwaApp {
             }
 
             Message::OpenWorkflowList => {
+                // Leave the current workflow if we're in one
+                if self.current_workflow_id.is_some() {
+                    if let Some(conn) = get_connection() {
+                        let _ = conn.reducers.leave_workflow();
+                    }
+                }
+
                 self.view = AppView::WorkflowList;
                 self.current_workflow = None;
                 self.current_workflow_id = None;
+                // Clear remote users when leaving a workflow
+                self.remote_users.clear();
                 // No need to sync - callbacks keep the list up to date
             }
 
             Message::OpenWorkflowEditor(id) => {
+                // Check if nickname is set
+                if self.user_nickname.is_none() {
+                    // Show nickname dialog first
+                    self.pending_workflow_id = Some(id);
+                    self.nickname_dialog_open = true;
+                    self.nickname_input.clear();
+                    return Task::none();
+                }
+
+                // Proceed with opening the workflow
                 self.current_workflow_id = Some(id.clone());
 
                 // Load workflow data from SpacetimeDB cache
@@ -414,7 +861,11 @@ impl NgwaApp {
 
                         self.node_positions.clear();
                         for node_data in &nodes {
+                            // Parse UUID from SpacetimeDB - use the stored node_uuid
+                            let node_id = Uuid::parse_str(&node_data.node_uuid)
+                                .unwrap_or_else(|_| Uuid::new_v4());
                             let node = WorkflowNode::new(&node_data.node_type, (node_data.position_x, node_data.position_y))
+                                .with_id(node_id)
                                 .with_name(&node_data.name);
                             workflow.add_node(node);
                             self.node_positions.push(iced::Point::new(node_data.position_x, node_data.position_y));
@@ -441,6 +892,37 @@ impl NgwaApp {
                         }
 
                         self.current_workflow = Some(workflow);
+                    }
+
+                    // Join workflow for collaboration
+                    if let Some(nickname) = &self.user_nickname {
+                        let _ = conn.reducers.join_workflow(
+                            id.clone(),
+                            nickname.clone(),
+                            self.user_color,
+                        );
+                    }
+
+                    // Load existing users in this workflow
+                    self.remote_users.clear();
+                    for presence in conn.db.user_presence().iter() {
+                        if presence.workflow_id == id {
+                            let identity = presence.user_identity.to_string();
+                            // Skip ourselves
+                            if self.my_identity.as_ref() != Some(&identity) {
+                                self.remote_users.insert(
+                                    identity.clone(),
+                                    RemoteUser {
+                                        identity,
+                                        nickname: presence.nickname.clone(),
+                                        color: presence.cursor_color,
+                                        cursor: Some(iced::Point::new(presence.cursor_x, presence.cursor_y)),
+                                        selected_nodes: HashSet::new(),
+                                        drag_state: None,
+                                    },
+                                );
+                            }
+                        }
                     }
                 }
 
@@ -491,6 +973,40 @@ impl NgwaApp {
                                 position.x,
                                 position.y,
                             );
+                        }
+                    }
+                }
+            }
+
+            Message::GroupMoved { node_ids, delta } => {
+                // Update all positions locally
+                for &node_id in &node_ids {
+                    if node_id < self.node_positions.len() {
+                        self.node_positions[node_id].x += delta.x;
+                        self.node_positions[node_id].y += delta.y;
+                    }
+                    if let Some(ref mut workflow) = self.current_workflow {
+                        if let Some(node) = workflow.nodes.get_mut(node_id) {
+                            node.position.0 += delta.x;
+                            node.position.1 += delta.y;
+                        }
+                    }
+                }
+
+                // Sync to SpacetimeDB
+                if let (Some(workflow_id), Some(ref workflow)) =
+                    (&self.current_workflow_id, &self.current_workflow)
+                {
+                    if let Some(conn) = get_connection() {
+                        for &node_id in &node_ids {
+                            if let Some(node) = workflow.nodes.get(node_id) {
+                                let _ = conn.reducers.move_node(
+                                    workflow_id.clone(),
+                                    node.id.to_string(),
+                                    node.position.0,
+                                    node.position.1,
+                                );
+                            }
                         }
                     }
                 }
@@ -559,7 +1075,21 @@ impl NgwaApp {
             }
 
             Message::SelectionChanged(selected) => {
-                self.selected_nodes = selected.into_iter().collect();
+                self.selected_nodes = selected.iter().copied().collect();
+
+                // Send selection to SpacetimeDB for collaboration
+                if let Some(workflow_id) = &self.current_workflow_id {
+                    if let Some(conn) = get_connection() {
+                        // Convert node indices to UUIDs
+                        let uuids: Vec<String> = selected.iter()
+                            .filter_map(|&id| self.current_workflow.as_ref()
+                                .and_then(|w| w.nodes.get(id))
+                                .map(|n| format!("\"{}\"", n.id)))
+                            .collect();
+                        let node_uuids_json = format!("[{}]", uuids.join(","));
+                        let _ = conn.reducers.update_selection(workflow_id.clone(), node_uuids_json);
+                    }
+                }
             }
 
             Message::DeleteNodes(node_ids) => {
@@ -729,16 +1259,20 @@ impl NgwaApp {
                 let y = 300.0;
 
                 if let Some(workflow_id) = &self.current_workflow_id {
-                    let node_uuid = Uuid::new_v4().to_string();
+                    // Use the SAME UUID for both local and SpacetimeDB
+                    let node_id = Uuid::new_v4();
+                    let node_uuid = node_id.to_string();
 
-                    // Add locally
+                    // Add locally with the same UUID
                     if let Some(ref mut workflow) = self.current_workflow {
-                        let node = WorkflowNode::new(&node_type, (x, y)).with_name(&name);
+                        let node = WorkflowNode::new(&node_type, (x, y))
+                            .with_id(node_id)
+                            .with_name(&name);
                         workflow.add_node(node);
                         self.node_positions.push(iced::Point::new(x, y));
                     }
 
-                    // Sync to SpacetimeDB
+                    // Sync to SpacetimeDB with the same UUID
                     if let Some(conn) = get_connection() {
                         let _ = conn.reducers.add_node(
                             workflow_id.clone(),
@@ -763,6 +1297,101 @@ impl NgwaApp {
                 self.palette_view = PaletteView::Main;
             }
 
+            Message::NicknameInputChanged(input) => {
+                self.nickname_input = input;
+            }
+
+            Message::NicknameConfirm => {
+                if !self.nickname_input.is_empty() {
+                    // Save the nickname
+                    self.user_nickname = Some(self.nickname_input.clone());
+                    self.nickname_dialog_open = false;
+
+                    // If there's a pending workflow, open it now
+                    if let Some(workflow_id) = self.pending_workflow_id.take() {
+                        return self.update(Message::OpenWorkflowEditor(workflow_id));
+                    }
+                }
+            }
+
+            Message::NicknameCancel => {
+                self.nickname_dialog_open = false;
+                self.pending_workflow_id = None;
+                self.nickname_input.clear();
+            }
+
+            Message::CursorMoved { x, y } => {
+                // Send cursor position to SpacetimeDB (for other users to see)
+                if self.current_workflow_id.is_some() {
+                    if let Some(conn) = get_connection() {
+                        let _ = conn.reducers.update_cursor(x, y);
+                    }
+                }
+            }
+
+            Message::DragStarted(drag_info) => {
+                // Send drag start to SpacetimeDB
+                if let Some(workflow_id) = &self.current_workflow_id {
+                    if let Some(conn) = get_connection() {
+                        let (drag_type, node_uuids, from_pin, x, y) = match &drag_info {
+                            DragInfo::Node { node_id } => {
+                                // Get node UUID from workflow
+                                let uuid = self.current_workflow.as_ref()
+                                    .and_then(|w| w.nodes.get(*node_id))
+                                    .map(|n| n.id.to_string())
+                                    .unwrap_or_default();
+                                ("node", format!("[\"{}\"]", uuid), String::new(), 0.0, 0.0)
+                            }
+                            DragInfo::Group { node_ids } => {
+                                // Get node UUIDs from workflow
+                                let uuids: Vec<String> = node_ids.iter()
+                                    .filter_map(|id| self.current_workflow.as_ref()
+                                        .and_then(|w| w.nodes.get(*id))
+                                        .map(|n| format!("\"{}\"", n.id)))
+                                    .collect();
+                                ("group", format!("[{}]", uuids.join(",")), String::new(), 0.0, 0.0)
+                            }
+                            DragInfo::Edge { from_node, from_pin } => {
+                                let uuid = self.current_workflow.as_ref()
+                                    .and_then(|w| w.nodes.get(*from_node))
+                                    .map(|n| n.id.to_string())
+                                    .unwrap_or_default();
+                                ("edge", "[]".to_string(), format!("{}:{}", uuid, from_pin), 0.0, 0.0)
+                            }
+                            DragInfo::BoxSelect { start_x, start_y } => {
+                                ("box_select", "[]".to_string(), String::new(), *start_x, *start_y)
+                            }
+                        };
+                        let _ = conn.reducers.start_drag(
+                            workflow_id.clone(),
+                            drag_type.to_string(),
+                            node_uuids,
+                            from_pin,
+                            x,
+                            y,
+                        );
+                    }
+                }
+            }
+
+            Message::DragUpdated { x, y } => {
+                // Send drag update to SpacetimeDB
+                if self.current_workflow_id.is_some() {
+                    if let Some(conn) = get_connection() {
+                        let _ = conn.reducers.update_drag(x, y);
+                    }
+                }
+            }
+
+            Message::DragEnded => {
+                // Send drag end to SpacetimeDB
+                if self.current_workflow_id.is_some() {
+                    if let Some(conn) = get_connection() {
+                        let _ = conn.reducers.end_drag();
+                    }
+                }
+            }
+
             Message::Tick => {
                 // Animation tick - just triggers redraw
             }
@@ -772,10 +1401,96 @@ impl NgwaApp {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        match self.view {
+        let content = match self.view {
             AppView::WorkflowList => self.view_workflow_list(),
             AppView::WorkflowEditor => self.view_workflow_editor(),
+        };
+
+        // Show nickname dialog overlay if open
+        if self.nickname_dialog_open {
+            stack!(content, self.view_nickname_dialog())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        } else {
+            content
         }
+    }
+
+    fn view_nickname_dialog(&self) -> Element<'_, Message> {
+        let color = Color::from_rgb(
+            ((self.user_color >> 16) & 0xFF) as f32 / 255.0,
+            ((self.user_color >> 8) & 0xFF) as f32 / 255.0,
+            (self.user_color & 0xFF) as f32 / 255.0,
+        );
+
+        let color_indicator = container(text(" "))
+            .width(24)
+            .height(24)
+            .style(move |_theme: &Theme| {
+                container::Style {
+                    background: Some(iced::Background::Color(color)),
+                    border: iced::Border {
+                        color: Color::WHITE,
+                        width: 2.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                }
+            });
+
+        let dialog_content = container(
+            column![
+                text("Enter your nickname").size(20),
+                text("This will be shown to other collaborators").size(12),
+                row![
+                    color_indicator,
+                    text_input("Your name...", &self.nickname_input)
+                        .on_input(Message::NicknameInputChanged)
+                        .on_submit(Message::NicknameConfirm)
+                        .width(Length::Fill)
+                        .padding(8),
+                ]
+                .spacing(10)
+                .align_y(iced::Alignment::Center),
+                row![
+                    button("Cancel").on_press(Message::NicknameCancel),
+                    button("Join").on_press(Message::NicknameConfirm),
+                ]
+                .spacing(10),
+            ]
+            .spacing(15)
+            .padding(20)
+            .width(300),
+        )
+        .style(|theme: &Theme| {
+            let palette = theme.extended_palette();
+            container::Style {
+                background: Some(iced::Background::Color(palette.background.weak.color)),
+                border: iced::Border {
+                    color: palette.background.strong.color,
+                    width: 1.0,
+                    radius: 8.0.into(),
+                },
+                shadow: iced::Shadow {
+                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.4),
+                    offset: iced::Vector::new(0.0, 4.0),
+                    blur_radius: 12.0,
+                },
+                ..Default::default()
+            }
+        });
+
+        mouse_area(
+            container(dialog_content)
+                .center(Length::Fill)
+                .style(|_theme: &Theme| container::Style {
+                    background: Some(iced::Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.5))),
+                    ..Default::default()
+                }),
+        )
+        .on_press(Message::NicknameCancel)
+        .into()
     }
 
     fn view_workflow_list(&self) -> Element<'_, Message> {
@@ -841,11 +1556,86 @@ impl NgwaApp {
             .map(|w| w.name.as_str())
             .unwrap_or("Untitled");
 
+        // Build user avatars for collaborators
+        let user_avatars: Element<'_, Message> = if self.remote_users.is_empty() {
+            text("").into()
+        } else {
+            let avatars: Vec<Element<'_, Message>> = self.remote_users.values()
+                .map(|user| {
+                    let color = Color::from_rgb(
+                        ((user.color >> 16) & 0xFF) as f32 / 255.0,
+                        ((user.color >> 8) & 0xFF) as f32 / 255.0,
+                        (user.color & 0xFF) as f32 / 255.0,
+                    );
+                    // Get first letter of nickname for avatar
+                    let initial = user.nickname.chars().next()
+                        .map(|c| c.to_uppercase().to_string())
+                        .unwrap_or_else(|| "?".to_string());
+
+                    container(
+                        text(initial).size(12)
+                    )
+                    .width(28)
+                    .height(28)
+                    .center_x(28)
+                    .center_y(28)
+                    .style(move |_theme: &Theme| {
+                        container::Style {
+                            background: Some(iced::Background::Color(color)),
+                            border: iced::Border {
+                                color: Color::WHITE,
+                                width: 2.0,
+                                radius: 14.0.into(),
+                            },
+                            ..Default::default()
+                        }
+                    })
+                    .into()
+                })
+                .collect();
+
+            row(avatars).spacing(4).into()
+        };
+
+        // Show our own nickname
+        let my_name = self.user_nickname.as_deref().unwrap_or("Me");
+        let my_color = Color::from_rgb(
+            ((self.user_color >> 16) & 0xFF) as f32 / 255.0,
+            ((self.user_color >> 8) & 0xFF) as f32 / 255.0,
+            (self.user_color & 0xFF) as f32 / 255.0,
+        );
+
+        // User count indicator
+        let user_count = self.remote_users.len();
+        let user_count_text = if user_count > 0 {
+            format!("{} online", user_count + 1) // +1 for ourselves
+        } else {
+            "1 online".to_string()
+        };
+
         let header = row![
             button("< Back").on_press(Message::OpenWorkflowList),
             text(workflow_name).size(24),
+            iced::widget::Space::new().width(Length::Fill),
+            text(user_count_text).size(12),
+            user_avatars,
+            container(text(my_name).size(12))
+                .padding([4, 8])
+                .style(move |_theme: &Theme| {
+                    container::Style {
+                        background: Some(iced::Background::Color(my_color)),
+                        border: iced::Border {
+                            color: Color::WHITE,
+                            width: 1.0,
+                            radius: 4.0.into(),
+                        },
+                        ..Default::default()
+                    }
+                }),
         ]
-        .spacing(20)
+        .spacing(10)
+        .align_y(iced::Alignment::Center)
+        .width(Length::Fill)
         .padding(10);
 
         // Build the node graph
@@ -867,8 +1657,13 @@ impl NgwaApp {
                 },
             )
             .on_move(|node_id, position| Message::NodeMoved { node_id, position })
+            .on_group_move(|node_ids, delta| Message::GroupMoved { node_ids, delta })
             .on_select(Message::SelectionChanged)
-            .on_delete(Message::DeleteNodes);
+            .on_delete(Message::DeleteNodes)
+            // Drag callbacks for real-time collaboration
+            .on_drag_start(Message::DragStarted)
+            .on_drag_update(|x, y| Message::DragUpdated { x, y })
+            .on_drag_end(|| Message::DragEnded);
 
         // Add nodes
         if let Some(ref workflow) = self.current_workflow {
@@ -879,7 +1674,7 @@ impl NgwaApp {
                     .copied()
                     .unwrap_or(iced::Point::new(node.position.0, node.position.1));
 
-                let node_content = create_node_widget(node);
+                let node_content = create_node_widget(node, &self.current_theme);
                 ng.push_node(position, node_content);
             }
         }
@@ -1311,24 +2106,232 @@ fn get_available_themes() -> Vec<(Theme, &'static str)> {
     ]
 }
 
-/// Create a widget for displaying a node
-fn create_node_widget(node: &WorkflowNode) -> Element<'_, Message> {
-    let node_type_display = match node.node_type.as_str() {
-        "manual_trigger" => "Manual Trigger",
-        "http_request" => "HTTP Request",
-        "set" => "Set",
-        "if" => "If",
-        _ => node.node_type.as_str(),
-    };
+/// Pin definition: (name, direction, color)
+type PinDef = (&'static str, PinDirection, Color);
 
-    container(
-        column![
-            text(node.name.clone()).size(14),
-            text(node_type_display).size(11),
-        ]
-        .spacing(4),
+/// Get pin definitions for a node type: (inputs, outputs)
+fn get_node_pins(node_type: &str) -> (Vec<PinDef>, Vec<PinDef>) {
+    let trigger_color = Color::from_rgb(0.3, 0.9, 0.5);    // Green for trigger/flow
+    let data_color = Color::from_rgb(0.3, 0.7, 0.9);       // Blue for data
+    let string_color = Color::from_rgb(0.9, 0.7, 0.3);     // Orange for strings
+    let bool_color = Color::from_rgb(0.9, 0.4, 0.4);       // Red for booleans
+    let json_color = Color::from_rgb(0.7, 0.3, 0.9);       // Purple for JSON
+
+    match node_type {
+        // Triggers - only outputs
+        "manual_trigger" | "cron_trigger" | "webhook_trigger" | "email_trigger"
+        | "file_trigger" | "database_trigger" | "mqtt_trigger" | "kafka_trigger" => {
+            (vec![], vec![("trigger", PinDirection::Output, trigger_color)])
+        }
+
+        // HTTP/API nodes
+        "http_request" | "graphql_request" | "soap_request" | "grpc_call" => {
+            (
+                vec![("trigger", PinDirection::Input, trigger_color)],
+                vec![
+                    ("response", PinDirection::Output, json_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // Data transformation
+        "set" | "rename_keys" | "remove_fields" | "xml_to_json" | "json_to_xml"
+        | "csv_parse" | "csv_generate" | "base64_encode" | "base64_decode"
+        | "compress" | "decompress" | "encrypt" | "decrypt" | "html_extract"
+        | "markdown_to_html" | "date_time" | "aggregate" => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![("output", PinDirection::Output, data_color)],
+            )
+        }
+
+        // Flow control with multiple outputs
+        "if" | "filter" => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![
+                    ("true", PinDirection::Output, trigger_color),
+                    ("false", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+        "switch" | "route" => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![
+                    ("case1", PinDirection::Output, trigger_color),
+                    ("case2", PinDirection::Output, trigger_color),
+                    ("default", PinDirection::Output, data_color),
+                ],
+            )
+        }
+
+        // Code execution
+        "code" | "function" | "expression" => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![
+                    ("output", PinDirection::Output, data_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // Merge/Split
+        "merge" | "compare" => {
+            (
+                vec![
+                    ("input1", PinDirection::Input, data_color),
+                    ("input2", PinDirection::Input, data_color),
+                ],
+                vec![("output", PinDirection::Output, data_color)],
+            )
+        }
+        "split_in_batches" | "loop" | "split_out" => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![
+                    ("item", PinDirection::Output, data_color),
+                    ("done", PinDirection::Output, trigger_color),
+                ],
+            )
+        }
+
+        // Database operations
+        "postgres" | "mysql" | "mongodb" | "redis" | "elasticsearch" | "sqlite"
+        | "supabase" | "airtable" | "notion_database" => {
+            (
+                vec![
+                    ("trigger", PinDirection::Input, trigger_color),
+                    ("query", PinDirection::Input, string_color),
+                ],
+                vec![
+                    ("result", PinDirection::Output, json_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // File operations
+        "read_file" | "write_file" | "ftp" | "sftp" | "s3" | "google_drive"
+        | "dropbox" | "onedrive" => {
+            (
+                vec![("trigger", PinDirection::Input, trigger_color)],
+                vec![
+                    ("data", PinDirection::Output, data_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // Communication
+        "send_email" | "slack" | "discord" | "telegram" | "twilio" | "push_notification" => {
+            (
+                vec![
+                    ("trigger", PinDirection::Input, trigger_color),
+                    ("message", PinDirection::Input, string_color),
+                ],
+                vec![
+                    ("success", PinDirection::Output, trigger_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // AI/ML
+        "openai" | "anthropic" | "huggingface" | "text_classifier" | "sentiment_analysis" => {
+            (
+                vec![
+                    ("trigger", PinDirection::Input, trigger_color),
+                    ("prompt", PinDirection::Input, string_color),
+                ],
+                vec![
+                    ("response", PinDirection::Output, string_color),
+                    ("error", PinDirection::Output, bool_color),
+                ],
+            )
+        }
+
+        // Utility
+        "wait" | "delay" => {
+            (
+                vec![("trigger", PinDirection::Input, trigger_color)],
+                vec![("done", PinDirection::Output, trigger_color)],
+            )
+        }
+        "no_op" | "sticky_note" => (vec![], vec![]),
+        "error_trigger" => {
+            (
+                vec![],
+                vec![
+                    ("error", PinDirection::Output, bool_color),
+                    ("workflow", PinDirection::Output, string_color),
+                ],
+            )
+        }
+        "respond_to_webhook" | "execute_workflow" => {
+            (
+                vec![
+                    ("trigger", PinDirection::Input, trigger_color),
+                    ("data", PinDirection::Input, data_color),
+                ],
+                vec![("done", PinDirection::Output, trigger_color)],
+            )
+        }
+
+        // Default: single input/output
+        _ => {
+            (
+                vec![("input", PinDirection::Input, data_color)],
+                vec![("output", PinDirection::Output, data_color)],
+            )
+        }
+    }
+}
+
+/// Create a widget for displaying a node with pins
+fn create_node_widget<'a>(node: &WorkflowNode, theme: &'a Theme) -> Element<'a, Message> {
+    let (inputs, outputs) = get_node_pins(&node.node_type);
+    let style = NodeContentStyle::process(theme);
+
+    // Build pin list - each pin in a column
+    let mut pin_elements: Vec<Element<'a, Message>> = Vec::new();
+
+    // Add input pins (left side)
+    for (name, dir, color) in &inputs {
+        pin_elements.push(
+            node_pin(
+                PinSide::Left,
+                container(text(*name).size(10)).padding([0, 8]),
+            )
+            .direction(*dir)
+            .pin_type(*name)
+            .color(*color)
+            .into(),
+        );
+    }
+
+    // Add output pins (right side)
+    for (name, dir, color) in &outputs {
+        pin_elements.push(
+            node_pin(
+                PinSide::Right,
+                container(text(*name).size(10)).padding([0, 8]),
+            )
+            .direction(*dir)
+            .pin_type(*name)
+            .color(*color)
+            .into(),
+        );
+    }
+
+    let pin_section = container(
+        iced::widget::Column::with_children(pin_elements).spacing(2),
     )
-    .padding(8)
-    .width(Length::Fixed(140.0))
-    .into()
+    .padding([6, 0]);
+
+    column![node_title_bar(&node.name, style), pin_section]
+        .width(160.0)
+        .into()
 }

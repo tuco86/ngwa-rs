@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -28,8 +22,8 @@ impl From<AddEdgeArgs> for super::Reducer {
             from_output: args.from_output,
             to_node_uuid: args.to_node_uuid,
             to_input: args.to_input,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for AddEdgeArgs {
@@ -48,12 +42,14 @@ pub trait add_edge {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_add_edge`] callbacks.
-    fn add_edge(&self, workflow_id: String,
-from_node_uuid: String,
-from_output: String,
-to_node_uuid: String,
-to_input: String,
-) -> __sdk::Result<()>;
+    fn add_edge(
+        &self,
+        workflow_id: String,
+        from_node_uuid: String,
+        from_output: String,
+        to_node_uuid: String,
+        to_input: String,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `add_edge`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -61,38 +57,72 @@ to_input: String,
     ///
     /// The returned [`AddEdgeCallbackId`] can be passed to [`Self::remove_on_add_edge`]
     /// to cancel the callback.
-    fn on_add_edge(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String, ) + Send + 'static) -> AddEdgeCallbackId;
+    fn on_add_edge(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String)
+            + Send
+            + 'static,
+    ) -> AddEdgeCallbackId;
     /// Cancel a callback previously registered by [`Self::on_add_edge`],
     /// causing it not to run in the future.
     fn remove_on_add_edge(&self, callback: AddEdgeCallbackId);
 }
 
 impl add_edge for super::RemoteReducers {
-    fn add_edge(&self, workflow_id: String,
-from_node_uuid: String,
-from_output: String,
-to_node_uuid: String,
-to_input: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("add_edge", AddEdgeArgs { workflow_id, from_node_uuid, from_output, to_node_uuid, to_input,  })
+    fn add_edge(
+        &self,
+        workflow_id: String,
+        from_node_uuid: String,
+        from_output: String,
+        to_node_uuid: String,
+        to_input: String,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "add_edge",
+            AddEdgeArgs {
+                workflow_id,
+                from_node_uuid,
+                from_output,
+                to_node_uuid,
+                to_input,
+            },
+        )
     }
     fn on_add_edge(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &String)
+            + Send
+            + 'static,
     ) -> AddEdgeCallbackId {
         AddEdgeCallbackId(self.imp.on_reducer(
             "add_edge",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::AddEdge {
-                            workflow_id, from_node_uuid, from_output, to_node_uuid, to_input, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::AddEdge {
+                                    workflow_id,
+                                    from_node_uuid,
+                                    from_output,
+                                    to_node_uuid,
+                                    to_input,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, from_node_uuid, from_output, to_node_uuid, to_input, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(
+                    ctx,
+                    workflow_id,
+                    from_node_uuid,
+                    from_output,
+                    to_node_uuid,
+                    to_input,
+                )
             }),
         ))
     }
@@ -120,4 +150,3 @@ impl set_flags_for_add_edge for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("add_edge", flags);
     }
 }
-

@@ -6,17 +6,19 @@ use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub struct ExecutionLog {
-    pub id: u64,
+pub struct DragState {
+    pub user_identity: __sdk::Identity,
     pub workflow_id: String,
-    pub started_at: __sdk::Timestamp,
-    pub finished_at: Option<__sdk::Timestamp>,
-    pub status: String,
-    pub trigger_type: String,
-    pub error_message: Option<String>,
-    pub triggered_by: __sdk::Identity,
+    pub drag_type: String,
+    pub node_uuids: String,
+    pub from_pin: String,
+    pub start_x: f32,
+    pub start_y: f32,
+    pub current_x: f32,
+    pub current_y: f32,
+    pub last_updated: __sdk::Timestamp,
 }
 
-impl __sdk::InModule for ExecutionLog {
+impl __sdk::InModule for DragState {
     type Module = super::RemoteModule;
 }

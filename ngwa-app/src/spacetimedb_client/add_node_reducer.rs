@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -32,8 +26,8 @@ impl From<AddNodeArgs> for super::Reducer {
             position_x: args.position_x,
             position_y: args.position_y,
             config_json: args.config_json,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for AddNodeArgs {
@@ -52,14 +46,16 @@ pub trait add_node {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_add_node`] callbacks.
-    fn add_node(&self, workflow_id: String,
-node_uuid: String,
-node_type: String,
-name: String,
-position_x: f32,
-position_y: f32,
-config_json: String,
-) -> __sdk::Result<()>;
+    fn add_node(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        node_type: String,
+        name: String,
+        position_x: f32,
+        position_y: f32,
+        config_json: String,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `add_node`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -67,40 +63,96 @@ config_json: String,
     ///
     /// The returned [`AddNodeCallbackId`] can be passed to [`Self::remove_on_add_node`]
     /// to cancel the callback.
-    fn on_add_node(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &f32, &f32, &String, ) + Send + 'static) -> AddNodeCallbackId;
+    fn on_add_node(
+        &self,
+        callback: impl FnMut(
+                &super::ReducerEventContext,
+                &String,
+                &String,
+                &String,
+                &String,
+                &f32,
+                &f32,
+                &String,
+            ) + Send
+            + 'static,
+    ) -> AddNodeCallbackId;
     /// Cancel a callback previously registered by [`Self::on_add_node`],
     /// causing it not to run in the future.
     fn remove_on_add_node(&self, callback: AddNodeCallbackId);
 }
 
 impl add_node for super::RemoteReducers {
-    fn add_node(&self, workflow_id: String,
-node_uuid: String,
-node_type: String,
-name: String,
-position_x: f32,
-position_y: f32,
-config_json: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("add_node", AddNodeArgs { workflow_id, node_uuid, node_type, name, position_x, position_y, config_json,  })
+    fn add_node(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        node_type: String,
+        name: String,
+        position_x: f32,
+        position_y: f32,
+        config_json: String,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "add_node",
+            AddNodeArgs {
+                workflow_id,
+                node_uuid,
+                node_type,
+                name,
+                position_x,
+                position_y,
+                config_json,
+            },
+        )
     }
     fn on_add_node(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, &String, &f32, &f32, &String, ) + Send + 'static,
+        mut callback: impl FnMut(
+                &super::ReducerEventContext,
+                &String,
+                &String,
+                &String,
+                &String,
+                &f32,
+                &f32,
+                &String,
+            ) + Send
+            + 'static,
     ) -> AddNodeCallbackId {
         AddNodeCallbackId(self.imp.on_reducer(
             "add_node",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::AddNode {
-                            workflow_id, node_uuid, node_type, name, position_x, position_y, config_json, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::AddNode {
+                                    workflow_id,
+                                    node_uuid,
+                                    node_type,
+                                    name,
+                                    position_x,
+                                    position_y,
+                                    config_json,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, node_uuid, node_type, name, position_x, position_y, config_json, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(
+                    ctx,
+                    workflow_id,
+                    node_uuid,
+                    node_type,
+                    name,
+                    position_x,
+                    position_y,
+                    config_json,
+                )
             }),
         ))
     }
@@ -128,4 +180,3 @@ impl set_flags_for_add_node for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("add_node", flags);
     }
 }
-

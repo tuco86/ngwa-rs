@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -24,8 +18,8 @@ impl From<UpdateNodeConfigArgs> for super::Reducer {
             workflow_id: args.workflow_id,
             node_uuid: args.node_uuid,
             config_json: args.config_json,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for UpdateNodeConfigArgs {
@@ -44,10 +38,12 @@ pub trait update_node_config {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_node_config`] callbacks.
-    fn update_node_config(&self, workflow_id: String,
-node_uuid: String,
-config_json: String,
-) -> __sdk::Result<()>;
+    fn update_node_config(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        config_json: String,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_node_config`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -55,36 +51,57 @@ config_json: String,
     ///
     /// The returned [`UpdateNodeConfigCallbackId`] can be passed to [`Self::remove_on_update_node_config`]
     /// to cancel the callback.
-    fn on_update_node_config(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, ) + Send + 'static) -> UpdateNodeConfigCallbackId;
+    fn on_update_node_config(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String) + Send + 'static,
+    ) -> UpdateNodeConfigCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_node_config`],
     /// causing it not to run in the future.
     fn remove_on_update_node_config(&self, callback: UpdateNodeConfigCallbackId);
 }
 
 impl update_node_config for super::RemoteReducers {
-    fn update_node_config(&self, workflow_id: String,
-node_uuid: String,
-config_json: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("update_node_config", UpdateNodeConfigArgs { workflow_id, node_uuid, config_json,  })
+    fn update_node_config(
+        &self,
+        workflow_id: String,
+        node_uuid: String,
+        config_json: String,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "update_node_config",
+            UpdateNodeConfigArgs {
+                workflow_id,
+                node_uuid,
+                config_json,
+            },
+        )
     }
     fn on_update_node_config(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, &String)
+            + Send
+            + 'static,
     ) -> UpdateNodeConfigCallbackId {
         UpdateNodeConfigCallbackId(self.imp.on_reducer(
             "update_node_config",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::UpdateNodeConfig {
-                            workflow_id, node_uuid, config_json, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::UpdateNodeConfig {
+                                    workflow_id,
+                                    node_uuid,
+                                    config_json,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, node_uuid, config_json, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, node_uuid, config_json)
             }),
         ))
     }
@@ -112,4 +129,3 @@ impl set_flags_for_update_node_config for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("update_node_config", flags);
     }
 }
-

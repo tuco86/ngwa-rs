@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<UpdateCursorArgs> for super::Reducer {
         Self::UpdateCursor {
             cursor_x: args.cursor_x,
             cursor_y: args.cursor_y,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for UpdateCursorArgs {
@@ -42,9 +36,7 @@ pub trait update_cursor {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_cursor`] callbacks.
-    fn update_cursor(&self, cursor_x: f32,
-cursor_y: f32,
-) -> __sdk::Result<()>;
+    fn update_cursor(&self, cursor_x: f32, cursor_y: f32) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_cursor`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,35 +44,39 @@ cursor_y: f32,
     ///
     /// The returned [`UpdateCursorCallbackId`] can be passed to [`Self::remove_on_update_cursor`]
     /// to cancel the callback.
-    fn on_update_cursor(&self, callback: impl FnMut(&super::ReducerEventContext, &f32, &f32, ) + Send + 'static) -> UpdateCursorCallbackId;
+    fn on_update_cursor(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &f32, &f32) + Send + 'static,
+    ) -> UpdateCursorCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_cursor`],
     /// causing it not to run in the future.
     fn remove_on_update_cursor(&self, callback: UpdateCursorCallbackId);
 }
 
 impl update_cursor for super::RemoteReducers {
-    fn update_cursor(&self, cursor_x: f32,
-cursor_y: f32,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("update_cursor", UpdateCursorArgs { cursor_x, cursor_y,  })
+    fn update_cursor(&self, cursor_x: f32, cursor_y: f32) -> __sdk::Result<()> {
+        self.imp
+            .call_reducer("update_cursor", UpdateCursorArgs { cursor_x, cursor_y })
     }
     fn on_update_cursor(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &f32, &f32, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &f32, &f32) + Send + 'static,
     ) -> UpdateCursorCallbackId {
         UpdateCursorCallbackId(self.imp.on_reducer(
             "update_cursor",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::UpdateCursor {
-                            cursor_x, cursor_y, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer: super::Reducer::UpdateCursor { cursor_x, cursor_y },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, cursor_x, cursor_y, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, cursor_x, cursor_y)
             }),
         ))
     }
@@ -108,4 +104,3 @@ impl set_flags_for_update_cursor for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("update_cursor", flags);
     }
 }
-

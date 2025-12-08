@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<ToggleNodeDisabledArgs> for super::Reducer {
         Self::ToggleNodeDisabled {
             workflow_id: args.workflow_id,
             node_uuid: args.node_uuid,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for ToggleNodeDisabledArgs {
@@ -42,9 +36,7 @@ pub trait toggle_node_disabled {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_toggle_node_disabled`] callbacks.
-    fn toggle_node_disabled(&self, workflow_id: String,
-node_uuid: String,
-) -> __sdk::Result<()>;
+    fn toggle_node_disabled(&self, workflow_id: String, node_uuid: String) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `toggle_node_disabled`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,40 +44,54 @@ node_uuid: String,
     ///
     /// The returned [`ToggleNodeDisabledCallbackId`] can be passed to [`Self::remove_on_toggle_node_disabled`]
     /// to cancel the callback.
-    fn on_toggle_node_disabled(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static) -> ToggleNodeDisabledCallbackId;
+    fn on_toggle_node_disabled(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
+    ) -> ToggleNodeDisabledCallbackId;
     /// Cancel a callback previously registered by [`Self::on_toggle_node_disabled`],
     /// causing it not to run in the future.
     fn remove_on_toggle_node_disabled(&self, callback: ToggleNodeDisabledCallbackId);
 }
 
 impl toggle_node_disabled for super::RemoteReducers {
-    fn toggle_node_disabled(&self, workflow_id: String,
-node_uuid: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("toggle_node_disabled", ToggleNodeDisabledArgs { workflow_id, node_uuid,  })
+    fn toggle_node_disabled(&self, workflow_id: String, node_uuid: String) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "toggle_node_disabled",
+            ToggleNodeDisabledArgs {
+                workflow_id,
+                node_uuid,
+            },
+        )
     }
     fn on_toggle_node_disabled(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
     ) -> ToggleNodeDisabledCallbackId {
         ToggleNodeDisabledCallbackId(self.imp.on_reducer(
             "toggle_node_disabled",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::ToggleNodeDisabled {
-                            workflow_id, node_uuid, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::ToggleNodeDisabled {
+                                    workflow_id,
+                                    node_uuid,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, node_uuid, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, node_uuid)
             }),
         ))
     }
     fn remove_on_toggle_node_disabled(&self, callback: ToggleNodeDisabledCallbackId) {
-        self.imp.remove_on_reducer("toggle_node_disabled", callback.0)
+        self.imp
+            .remove_on_reducer("toggle_node_disabled", callback.0)
     }
 }
 
@@ -105,7 +111,7 @@ pub trait set_flags_for_toggle_node_disabled {
 
 impl set_flags_for_toggle_node_disabled for super::SetReducerFlags {
     fn toggle_node_disabled(&self, flags: __ws::CallReducerFlags) {
-        self.imp.set_call_reducer_flags("toggle_node_disabled", flags);
+        self.imp
+            .set_call_reducer_flags("toggle_node_disabled", flags);
     }
 }
-

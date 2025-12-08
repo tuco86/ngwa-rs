@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -20,8 +14,8 @@ impl From<UpdateNicknameArgs> for super::Reducer {
     fn from(args: UpdateNicknameArgs) -> Self {
         Self::UpdateNickname {
             nickname: args.nickname,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for UpdateNicknameArgs {
@@ -40,8 +34,7 @@ pub trait update_nickname {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_update_nickname`] callbacks.
-    fn update_nickname(&self, nickname: String,
-) -> __sdk::Result<()>;
+    fn update_nickname(&self, nickname: String) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `update_nickname`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -49,34 +42,39 @@ pub trait update_nickname {
     ///
     /// The returned [`UpdateNicknameCallbackId`] can be passed to [`Self::remove_on_update_nickname`]
     /// to cancel the callback.
-    fn on_update_nickname(&self, callback: impl FnMut(&super::ReducerEventContext, &String, ) + Send + 'static) -> UpdateNicknameCallbackId;
+    fn on_update_nickname(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String) + Send + 'static,
+    ) -> UpdateNicknameCallbackId;
     /// Cancel a callback previously registered by [`Self::on_update_nickname`],
     /// causing it not to run in the future.
     fn remove_on_update_nickname(&self, callback: UpdateNicknameCallbackId);
 }
 
 impl update_nickname for super::RemoteReducers {
-    fn update_nickname(&self, nickname: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("update_nickname", UpdateNicknameArgs { nickname,  })
+    fn update_nickname(&self, nickname: String) -> __sdk::Result<()> {
+        self.imp
+            .call_reducer("update_nickname", UpdateNicknameArgs { nickname })
     }
     fn on_update_nickname(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String) + Send + 'static,
     ) -> UpdateNicknameCallbackId {
         UpdateNicknameCallbackId(self.imp.on_reducer(
             "update_nickname",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::UpdateNickname {
-                            nickname, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer: super::Reducer::UpdateNickname { nickname },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, nickname, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, nickname)
             }),
         ))
     }
@@ -104,4 +102,3 @@ impl set_flags_for_update_nickname for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("update_nickname", flags);
     }
 }
-

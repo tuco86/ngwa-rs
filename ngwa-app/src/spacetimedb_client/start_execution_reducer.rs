@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<StartExecutionArgs> for super::Reducer {
         Self::StartExecution {
             workflow_id: args.workflow_id,
             trigger_type: args.trigger_type,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for StartExecutionArgs {
@@ -42,9 +36,7 @@ pub trait start_execution {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_start_execution`] callbacks.
-    fn start_execution(&self, workflow_id: String,
-trigger_type: String,
-) -> __sdk::Result<()>;
+    fn start_execution(&self, workflow_id: String, trigger_type: String) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `start_execution`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,35 +44,48 @@ trigger_type: String,
     ///
     /// The returned [`StartExecutionCallbackId`] can be passed to [`Self::remove_on_start_execution`]
     /// to cancel the callback.
-    fn on_start_execution(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static) -> StartExecutionCallbackId;
+    fn on_start_execution(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
+    ) -> StartExecutionCallbackId;
     /// Cancel a callback previously registered by [`Self::on_start_execution`],
     /// causing it not to run in the future.
     fn remove_on_start_execution(&self, callback: StartExecutionCallbackId);
 }
 
 impl start_execution for super::RemoteReducers {
-    fn start_execution(&self, workflow_id: String,
-trigger_type: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("start_execution", StartExecutionArgs { workflow_id, trigger_type,  })
+    fn start_execution(&self, workflow_id: String, trigger_type: String) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "start_execution",
+            StartExecutionArgs {
+                workflow_id,
+                trigger_type,
+            },
+        )
     }
     fn on_start_execution(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
     ) -> StartExecutionCallbackId {
         StartExecutionCallbackId(self.imp.on_reducer(
             "start_execution",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::StartExecution {
-                            workflow_id, trigger_type, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::StartExecution {
+                                    workflow_id,
+                                    trigger_type,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, workflow_id, trigger_type, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, workflow_id, trigger_type)
             }),
         ))
     }
@@ -108,4 +113,3 @@ impl set_flags_for_start_execution for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("start_execution", flags);
     }
 }
-

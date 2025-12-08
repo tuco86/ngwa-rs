@@ -2,13 +2,7 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
@@ -22,8 +16,8 @@ impl From<CreateWorkflowArgs> for super::Reducer {
         Self::CreateWorkflow {
             id: args.id,
             name: args.name,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for CreateWorkflowArgs {
@@ -42,9 +36,7 @@ pub trait create_workflow {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_create_workflow`] callbacks.
-    fn create_workflow(&self, id: String,
-name: String,
-) -> __sdk::Result<()>;
+    fn create_workflow(&self, id: String, name: String) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `create_workflow`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -52,35 +44,39 @@ name: String,
     ///
     /// The returned [`CreateWorkflowCallbackId`] can be passed to [`Self::remove_on_create_workflow`]
     /// to cancel the callback.
-    fn on_create_workflow(&self, callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static) -> CreateWorkflowCallbackId;
+    fn on_create_workflow(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
+    ) -> CreateWorkflowCallbackId;
     /// Cancel a callback previously registered by [`Self::on_create_workflow`],
     /// causing it not to run in the future.
     fn remove_on_create_workflow(&self, callback: CreateWorkflowCallbackId);
 }
 
 impl create_workflow for super::RemoteReducers {
-    fn create_workflow(&self, id: String,
-name: String,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("create_workflow", CreateWorkflowArgs { id, name,  })
+    fn create_workflow(&self, id: String, name: String) -> __sdk::Result<()> {
+        self.imp
+            .call_reducer("create_workflow", CreateWorkflowArgs { id, name })
     }
     fn on_create_workflow(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &String, &String) + Send + 'static,
     ) -> CreateWorkflowCallbackId {
         CreateWorkflowCallbackId(self.imp.on_reducer(
             "create_workflow",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::CreateWorkflow {
-                            id, name, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer: super::Reducer::CreateWorkflow { id, name },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, id, name, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, id, name)
             }),
         ))
     }
@@ -108,4 +104,3 @@ impl set_flags_for_create_workflow for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("create_workflow", flags);
     }
 }
-

@@ -2,20 +2,14 @@
 // WILL NOT BE SAVED. MODIFY TABLES IN YOUR MODULE SOURCE CODE INSTEAD.
 
 #![allow(unused, clippy::all)]
-use spacetimedb_sdk::__codegen::{
-	self as __sdk,
-	__lib,
-	__sats,
-	__ws,
-};
-
+use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
 pub(super) struct FinishExecutionArgs {
     pub execution_id: u64,
     pub success: bool,
-    pub error_message: Option::<String>,
+    pub error_message: Option<String>,
 }
 
 impl From<FinishExecutionArgs> for super::Reducer {
@@ -24,8 +18,8 @@ impl From<FinishExecutionArgs> for super::Reducer {
             execution_id: args.execution_id,
             success: args.success,
             error_message: args.error_message,
-}
-}
+        }
+    }
 }
 
 impl __sdk::InModule for FinishExecutionArgs {
@@ -44,10 +38,12 @@ pub trait finish_execution {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_finish_execution`] callbacks.
-    fn finish_execution(&self, execution_id: u64,
-success: bool,
-error_message: Option::<String>,
-) -> __sdk::Result<()>;
+    fn finish_execution(
+        &self,
+        execution_id: u64,
+        success: bool,
+        error_message: Option<String>,
+    ) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `finish_execution`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -55,36 +51,57 @@ error_message: Option::<String>,
     ///
     /// The returned [`FinishExecutionCallbackId`] can be passed to [`Self::remove_on_finish_execution`]
     /// to cancel the callback.
-    fn on_finish_execution(&self, callback: impl FnMut(&super::ReducerEventContext, &u64, &bool, &Option::<String>, ) + Send + 'static) -> FinishExecutionCallbackId;
+    fn on_finish_execution(
+        &self,
+        callback: impl FnMut(&super::ReducerEventContext, &u64, &bool, &Option<String>) + Send + 'static,
+    ) -> FinishExecutionCallbackId;
     /// Cancel a callback previously registered by [`Self::on_finish_execution`],
     /// causing it not to run in the future.
     fn remove_on_finish_execution(&self, callback: FinishExecutionCallbackId);
 }
 
 impl finish_execution for super::RemoteReducers {
-    fn finish_execution(&self, execution_id: u64,
-success: bool,
-error_message: Option::<String>,
-) -> __sdk::Result<()> {
-        self.imp.call_reducer("finish_execution", FinishExecutionArgs { execution_id, success, error_message,  })
+    fn finish_execution(
+        &self,
+        execution_id: u64,
+        success: bool,
+        error_message: Option<String>,
+    ) -> __sdk::Result<()> {
+        self.imp.call_reducer(
+            "finish_execution",
+            FinishExecutionArgs {
+                execution_id,
+                success,
+                error_message,
+            },
+        )
     }
     fn on_finish_execution(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext, &u64, &bool, &Option::<String>, ) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &u64, &bool, &Option<String>)
+            + Send
+            + 'static,
     ) -> FinishExecutionCallbackId {
         FinishExecutionCallbackId(self.imp.on_reducer(
             "finish_execution",
             Box::new(move |ctx: &super::ReducerEventContext| {
                 let super::ReducerEventContext {
-                    event: __sdk::ReducerEvent {
-                        reducer: super::Reducer::FinishExecution {
-                            execution_id, success, error_message, 
+                    event:
+                        __sdk::ReducerEvent {
+                            reducer:
+                                super::Reducer::FinishExecution {
+                                    execution_id,
+                                    success,
+                                    error_message,
+                                },
+                            ..
                         },
-                        ..
-                    },
                     ..
-                } = ctx else { unreachable!() };
-                callback(ctx, execution_id, success, error_message, )
+                } = ctx
+                else {
+                    unreachable!()
+                };
+                callback(ctx, execution_id, success, error_message)
             }),
         ))
     }
@@ -112,4 +129,3 @@ impl set_flags_for_finish_execution for super::SetReducerFlags {
         self.imp.set_call_reducer_flags("finish_execution", flags);
     }
 }
-
