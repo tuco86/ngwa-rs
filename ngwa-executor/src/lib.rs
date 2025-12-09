@@ -136,8 +136,8 @@ impl WorkflowExecutor {
         // Kahn's algorithm
         let mut queue: Vec<Uuid> = in_degree
             .iter()
-            .filter(|(_, &deg)| deg == 0)
-            .map(|(&id, _)| id)
+            .filter(|(_, deg)| **deg == 0)
+            .map(|(id, _)| *id)
             .collect();
 
         let mut result = Vec::new();

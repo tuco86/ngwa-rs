@@ -638,7 +638,7 @@ impl NgwaApp {
                         } => {
                             // Add edge if we're viewing this workflow
                             if self.current_workflow_id.as_ref() == Some(&workflow_id) {
-                                if let Some(ref workflow) = self.current_workflow {
+                                if let Some(workflow) = &self.current_workflow {
                                     let from_idx = workflow.nodes.iter()
                                         .position(|n| n.id.to_string() == from_node_uuid);
                                     let to_idx = workflow.nodes.iter()
@@ -664,7 +664,7 @@ impl NgwaApp {
                         } => {
                             // Remove edge if we're viewing this workflow
                             if self.current_workflow_id.as_ref() == Some(&workflow_id) {
-                                if let Some(ref workflow) = self.current_workflow {
+                                if let Some(workflow) = &self.current_workflow {
                                     let from_idx = workflow.nodes.iter()
                                         .position(|n| n.id.to_string() == from_node_uuid);
                                     let to_idx = workflow.nodes.iter()
@@ -964,7 +964,7 @@ impl NgwaApp {
                 }
 
                 // Fire and forget - server will echo back via callback
-                if let (Some(workflow_id), Some(ref workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
+                if let (Some(workflow_id), Some(workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
                     if let Some(node) = workflow.nodes.get(node_id) {
                         if let Some(conn) = get_connection() {
                             let _ = conn.reducers.move_node(
@@ -994,7 +994,7 @@ impl NgwaApp {
                 }
 
                 // Sync to SpacetimeDB
-                if let (Some(workflow_id), Some(ref workflow)) =
+                if let (Some(workflow_id), Some(workflow)) =
                     (&self.current_workflow_id, &self.current_workflow)
                 {
                     if let Some(conn) = get_connection() {
@@ -1024,7 +1024,7 @@ impl NgwaApp {
                 ));
 
                 // Fire and forget - server will echo back via callback
-                if let (Some(workflow_id), Some(ref workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
+                if let (Some(workflow_id), Some(workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
                     let from_uuid = workflow.nodes.get(from_node).map(|n| n.id.to_string());
                     let to_uuid = workflow.nodes.get(to_node).map(|n| n.id.to_string());
 
@@ -1056,7 +1056,7 @@ impl NgwaApp {
                 });
 
                 // Fire and forget - server will echo back via callback
-                if let (Some(workflow_id), Some(ref workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
+                if let (Some(workflow_id), Some(workflow)) = (self.current_workflow_id.clone(), &self.current_workflow) {
                     let from_uuid = workflow.nodes.get(from_node).map(|n| n.id.to_string());
                     let to_uuid = workflow.nodes.get(to_node).map(|n| n.id.to_string());
 
@@ -1095,7 +1095,7 @@ impl NgwaApp {
             Message::DeleteNodes(node_ids) => {
                 // Collect node UUIDs for SpacetimeDB deletion before modifying local state
                 let mut nodes_to_delete: Vec<(String, String)> = Vec::new();
-                if let (Some(workflow_id), Some(ref workflow)) = (&self.current_workflow_id, &self.current_workflow) {
+                if let (Some(workflow_id), Some(workflow)) = (&self.current_workflow_id, &self.current_workflow) {
                     for &id in &node_ids {
                         if let Some(node) = workflow.nodes.get(id) {
                             nodes_to_delete.push((workflow_id.clone(), node.id.to_string()));
@@ -1664,7 +1664,7 @@ impl NgwaApp {
             .on_drag_end(|| Message::DragEnded);
 
         // Add nodes
-        if let Some(ref workflow) = self.current_workflow {
+        if let Some(workflow) = &self.current_workflow {
             for (i, node) in workflow.nodes.iter().enumerate() {
                 let position = self
                     .node_positions
