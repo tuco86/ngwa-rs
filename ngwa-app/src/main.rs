@@ -1355,6 +1355,9 @@ impl NgwaApp {
                             DragInfo::BoxSelect { start_x, start_y } => {
                                 ("box_select", "[]".to_string(), String::new(), *start_x, *start_y)
                             }
+                            DragInfo::EdgeVertex { edge_index, vertex_index } => {
+                                ("edge_vertex", "[]".to_string(), format!("{}:{}", edge_index, vertex_index), 0.0, 0.0)
+                            }
                         };
                         let _ = conn.reducers.start_drag(
                             workflow_id.clone(),
