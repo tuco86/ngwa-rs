@@ -616,3 +616,331 @@ pub fn end_drag(ctx: &ReducerContext) {
         ctx.db.drag_state().user_identity().delete(drag.user_identity);
     }
 }
+
+// ============================================================================
+// PHYSICS: EDGE VERTEX TABLE
+// ============================================================================
+
+/// Edge vertex positions for physics wire simulation.
+/// These are synced in real-time for multi-user collaboration.
+#[spacetimedb::table(name = edge_vertex, public)]
+pub struct EdgeVertex {
+    #[primary_key]
+    #[auto_inc]
+    pub id: u64,
+    #[index(btree)]
+    pub workflow_id: String,
+    #[index(btree)]
+    pub edge_id: u64,            // References workflow_edge.id
+    pub vertex_index: u16,        // Index within the edge (0 = start anchor)
+    pub position_x: f32,
+    pub position_y: f32,
+    pub velocity_x: f32,
+    pub velocity_y: f32,
+    pub last_modified_at: Timestamp,
+}
+
+// ============================================================================
+// PHYSICS: PHYSICS STATE TABLE
+// ============================================================================
+
+/// Physics simulation ownership per workflow.
+/// Only one client at a time can run the physics simulation.
+#[spacetimedb::table(name = physics_state, public)]
+pub struct PhysicsState {
+    #[primary_key]
+    pub workflow_id: String,
+    /// Identity of the client currently owning physics simulation (None = unclaimed)
+    pub owner_identity: Option<Identity>,
+    /// Whether physics simulation is currently running
+    pub simulation_running: bool,
+    /// Number of physics ticks processed
+    pub tick_count: u64,
+    pub last_tick_at: Timestamp,
+}
+
+// ============================================================================
+// OBJECT LOCKING TABLE
+// ============================================================================
+
+/// Optimistic locking for nodes/edges to prevent edit conflicts.
+/// Locks auto-expire after 5 seconds.
+#[spacetimedb::table(name = object_lock, public)]
+pub struct ObjectLock {
+    #[primary_key]
+    pub lock_key: String,           // "node:{uuid}" or "edge:{id}" or "vertex:{edge_id}:{index}"
+    pub workflow_id: String,
+    pub owner_identity: Identity,
+    pub lock_type: u8,              // 0 = read, 1 = write
+    pub acquired_at: Timestamp,
+    pub expires_at: Timestamp,      // Auto-expire after 5s
+}
+
+// ============================================================================
+// BATCH UPDATE FOR HIGH-FREQUENCY SYNC (16ms)
+// ============================================================================
+
+/// Single update in a batch (cursor, drag, or edge vertices).
+#[derive(spacetimedb::SpacetimeType, Clone)]
+pub struct BatchUpdate {
+    pub update_type: u8,            // 0 = cursor, 1 = drag, 2 = edge_vertices
+    pub x: f32,
+    pub y: f32,
+    pub sequence: u64,              // For ordering
+    pub edge_id: u64,               // For edge_vertices update
+    pub vertices_json: String,      // JSON array of {index, x, y, vx, vy}
+}
+
+// ============================================================================
+// PHYSICS REDUCERS
+// ============================================================================
+
+/// Claim physics ownership for a workflow.
+#[spacetimedb::reducer]
+pub fn claim_physics_ownership(ctx: &ReducerContext, workflow_id: String) {
+    if let Some(mut state) = ctx.db.physics_state().workflow_id().find(&workflow_id) {
+        // Only claim if unclaimed or if we already own it
+        if state.owner_identity.is_none() || state.owner_identity == Some(ctx.sender) {
+            state.owner_identity = Some(ctx.sender);
+            state.simulation_running = true;
+            state.last_tick_at = ctx.timestamp;
+            ctx.db.physics_state().workflow_id().update(state);
+            log::info!("Physics ownership claimed for workflow {} by {:?}", workflow_id, ctx.sender);
+        }
+    } else {
+        // Create new physics state
+        ctx.db.physics_state().insert(PhysicsState {
+            workflow_id: workflow_id.clone(),
+            owner_identity: Some(ctx.sender),
+            simulation_running: true,
+            tick_count: 0,
+            last_tick_at: ctx.timestamp,
+        });
+        log::info!("Physics state created for workflow {}", workflow_id);
+    }
+}
+
+/// Release physics ownership.
+#[spacetimedb::reducer]
+pub fn release_physics_ownership(ctx: &ReducerContext, workflow_id: String) {
+    if let Some(mut state) = ctx.db.physics_state().workflow_id().find(&workflow_id) {
+        if state.owner_identity == Some(ctx.sender) {
+            state.owner_identity = None;
+            state.simulation_running = false;
+            ctx.db.physics_state().workflow_id().update(state);
+            log::info!("Physics ownership released for workflow {}", workflow_id);
+        }
+    }
+}
+
+/// Update edge vertex positions (called by physics owner).
+#[spacetimedb::reducer]
+pub fn update_edge_vertices(
+    ctx: &ReducerContext,
+    workflow_id: String,
+    edge_id: u64,
+    vertices_json: String, // JSON: [{index, x, y, vx, vy}, ...]
+) {
+    // Verify caller owns physics
+    if let Some(state) = ctx.db.physics_state().workflow_id().find(&workflow_id) {
+        if state.owner_identity != Some(ctx.sender) {
+            log::warn!("Non-owner tried to update edge vertices");
+            return;
+        }
+    }
+
+    // Parse vertices and update
+    // For simplicity, we'll use a basic JSON parsing approach
+    // In production, use serde_json
+    let now = ctx.timestamp;
+
+    // Delete existing vertices for this edge
+    let existing: Vec<_> = ctx.db.edge_vertex().edge_id().filter(&edge_id).collect();
+    for v in existing {
+        ctx.db.edge_vertex().id().delete(v.id);
+    }
+
+    // Parse and insert new vertices (simplified - expects format like "[{...},{...}]")
+    // Note: In production, use proper serde_json deserialization
+    if !vertices_json.is_empty() && vertices_json != "[]" {
+        // This is a simplified parser - in real code use serde_json
+        let trimmed = vertices_json.trim_start_matches('[').trim_end_matches(']');
+        for entry in trimmed.split("},{") {
+            let clean = entry.trim_start_matches('{').trim_end_matches('}');
+            // Parse fields (very simplified)
+            let mut index: u16 = 0;
+            let mut px: f32 = 0.0;
+            let mut py: f32 = 0.0;
+            let mut vx: f32 = 0.0;
+            let mut vy: f32 = 0.0;
+
+            for field in clean.split(',') {
+                let parts: Vec<&str> = field.split(':').collect();
+                if parts.len() == 2 {
+                    let key = parts[0].trim().trim_matches('"');
+                    let val = parts[1].trim();
+                    match key {
+                        "index" | "i" => index = val.parse().unwrap_or(0),
+                        "x" => px = val.parse().unwrap_or(0.0),
+                        "y" => py = val.parse().unwrap_or(0.0),
+                        "vx" => vx = val.parse().unwrap_or(0.0),
+                        "vy" => vy = val.parse().unwrap_or(0.0),
+                        _ => {}
+                    }
+                }
+            }
+
+            ctx.db.edge_vertex().insert(EdgeVertex {
+                id: 0,
+                workflow_id: workflow_id.clone(),
+                edge_id,
+                vertex_index: index,
+                position_x: px,
+                position_y: py,
+                velocity_x: vx,
+                velocity_y: vy,
+                last_modified_at: now,
+            });
+        }
+    }
+}
+
+/// Initialize edge vertices when an edge is created.
+#[spacetimedb::reducer]
+pub fn init_edge_vertices(
+    ctx: &ReducerContext,
+    workflow_id: String,
+    edge_id: u64,
+    vertex_count: u16,
+    start_x: f32,
+    start_y: f32,
+    end_x: f32,
+    end_y: f32,
+) {
+    let now = ctx.timestamp;
+
+    for i in 0..vertex_count {
+        let t = i as f32 / (vertex_count - 1).max(1) as f32;
+        let x = start_x + (end_x - start_x) * t;
+        let y = start_y + (end_y - start_y) * t;
+
+        ctx.db.edge_vertex().insert(EdgeVertex {
+            id: 0,
+            workflow_id: workflow_id.clone(),
+            edge_id,
+            vertex_index: i,
+            position_x: x,
+            position_y: y,
+            velocity_x: 0.0,
+            velocity_y: 0.0,
+            last_modified_at: now,
+        });
+    }
+}
+
+// ============================================================================
+// OBJECT LOCKING REDUCERS
+// ============================================================================
+
+/// Try to acquire a lock on an object.
+/// Returns silently - client should check lock table for success.
+#[spacetimedb::reducer]
+pub fn try_acquire_lock(
+    ctx: &ReducerContext,
+    workflow_id: String,
+    lock_key: String,
+    lock_type: u8,
+    duration_ms: u64,
+) {
+    let now = ctx.timestamp;
+    let expires = Timestamp::from_micros_since_unix_epoch(
+        now.to_micros_since_unix_epoch() + (duration_ms as i64 * 1000)
+    );
+
+    // Check if lock exists and is still valid
+    if let Some(existing) = ctx.db.object_lock().lock_key().find(&lock_key) {
+        // Lock exists - check if expired
+        if existing.expires_at.to_micros_since_unix_epoch() > now.to_micros_since_unix_epoch() {
+            // Not expired - can only refresh if we own it
+            if existing.owner_identity == ctx.sender {
+                let mut lock = existing;
+                lock.expires_at = expires;
+                lock.lock_type = lock_type;
+                ctx.db.object_lock().lock_key().update(lock);
+            }
+            // Otherwise lock acquisition fails (caller checks table)
+            return;
+        }
+        // Expired - delete and allow new lock
+        ctx.db.object_lock().lock_key().delete(existing.lock_key);
+    }
+
+    // Create new lock
+    ctx.db.object_lock().insert(ObjectLock {
+        lock_key,
+        workflow_id,
+        owner_identity: ctx.sender,
+        lock_type,
+        acquired_at: now,
+        expires_at: expires,
+    });
+}
+
+/// Release a lock.
+#[spacetimedb::reducer]
+pub fn release_lock(ctx: &ReducerContext, lock_key: String) {
+    if let Some(lock) = ctx.db.object_lock().lock_key().find(&lock_key) {
+        if lock.owner_identity == ctx.sender {
+            ctx.db.object_lock().lock_key().delete(lock.lock_key);
+        }
+    }
+}
+
+// ============================================================================
+// BATCH HIGH-FREQUENCY UPDATE REDUCER (16ms)
+// ============================================================================
+
+/// Process a batch of high-frequency updates.
+/// Designed to be called every ~16ms with coalesced updates.
+#[spacetimedb::reducer]
+pub fn batch_high_freq_update(
+    ctx: &ReducerContext,
+    workflow_id: String,
+    updates: Vec<BatchUpdate>,
+) {
+    for update in updates {
+        match update.update_type {
+            // Cursor update
+            0 => {
+                if let Some(mut presence) = ctx.db.user_presence().user_identity().find(ctx.sender) {
+                    presence.cursor_x = update.x;
+                    presence.cursor_y = update.y;
+                    presence.last_seen = ctx.timestamp;
+                    ctx.db.user_presence().user_identity().update(presence);
+                }
+            }
+            // Drag update
+            1 => {
+                if let Some(mut drag) = ctx.db.drag_state().user_identity().find(ctx.sender) {
+                    drag.current_x = update.x;
+                    drag.current_y = update.y;
+                    drag.last_updated = ctx.timestamp;
+                    ctx.db.drag_state().user_identity().update(drag);
+                }
+            }
+            // Edge vertices update
+            2 => {
+                // Verify physics ownership
+                if let Some(state) = ctx.db.physics_state().workflow_id().find(&workflow_id) {
+                    if state.owner_identity == Some(ctx.sender) {
+                        // Process vertices update
+                        // (reuse update_edge_vertices logic)
+                        let _ = (update.edge_id, update.vertices_json);
+                        // Note: In production, call internal function
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+}
