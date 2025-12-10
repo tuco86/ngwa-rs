@@ -5,6 +5,7 @@
 
 mod spacetime_sync;
 mod spacetimedb_client;
+mod sync;
 
 use iced::widget::{button, column, container, mouse_area, row, scrollable, stack, text, text_input};
 use iced::{keyboard, window, Color, Element, Event, Length, Subscription, Task, Theme};
@@ -47,7 +48,7 @@ use std::sync::OnceLock;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-const SPACETIMEDB_URI: &str = "http://localhost:3000";
+const SPACETIMEDB_URI: &str = "http://127.0.0.1:3000";
 const DATABASE_NAME: &str = "ngwa-spacetime";
 
 /// Global connection holder (initialized once)
@@ -322,13 +323,8 @@ impl NgwaApp {
             remote_users: HashMap::new(),
         };
 
-        // Connect to SpacetimeDB after short delay
-        (app, Task::perform(
-            async {
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            },
-            |_| Message::Connect,
-        ))
+        // Connect to SpacetimeDB immediately
+        (app, Task::done(Message::Connect))
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
